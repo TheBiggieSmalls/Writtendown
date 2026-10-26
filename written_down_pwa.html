@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Written Down</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toast-msg">Actie voltooid</span>
+    </div>
+
+    <!-- Top Header Bar -->
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-20 shadow-xs">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleDrawer(true)" class="p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100 active:scale-95 transition">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-md shadow-indigo-200">
+                    WD
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 leading-tight">Written Down</h1>
+                    <p class="text-[11px] text-slate-500 font-medium">Jouw dagelijkse hub</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button id="installHeaderBtn" onclick="triggerInstall()" class="hidden bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                Installeer App
+            </button>
+            <button onclick="requestNotificationPermission()" class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition relative" title="Notificaties">
+                <i data-lucide="bell" class="w-5 h-5"></i>
+                <span id="notif-dot" class="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full hidden"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 px-4 flex justify-around shrink-0 z-10">
+        <button onclick="switchTab('kalender')" id="tab-kalender" class="flex-1 py-3 text-center font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600 transition flex items-center justify-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4"></i>
+            Kalender
+        </button>
+        <button onclick="switchTab('taken')" id="tab-taken" class="flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-2">
+            <i data-lucide="check-square" class="w-4 h-4"></i>
+            Taken <span id="task-badge" class="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+        </button>
+        <button onclick="switchTab('notities')" id="tab-notities" class="flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            Notities
+        </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto relative bg-slate-50 p-4 max-w-2xl mx-auto w-full">
+        
+        <!-- KALENDER PAGE -->
+        <section id="page-kalender" class="space-y-4 pb-20">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                    <h2 class="font-bold text-slate-800 text-lg" id="current-month-year">Agenda & Kalender</h2>
+                    <p class="text-xs text-slate-500">Beheer je afspraken en synchroniseer direct</p>
+                </div>
+                <button onclick="openModal('eventModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-100 transition active:scale-95">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Nieuw
+                </button>
+            </div>
+
+            <!-- Event List -->
+            <div id="events-container" class="space-y-3">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- TAKEN PAGE -->
+        <section id="page-taken" class="space-y-4 pb-20 hidden">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                    <h2 class="font-bold text-slate-800 text-lg">Taken & Routines</h2>
+                    <p class="text-xs text-slate-500">Vaste gewoontes en snelle acties</p>
+                </div>
+                <button onclick="openModal('taskModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-100 transition active:scale-95">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Taak
+                </button>
+            </div>
+
+            <!-- Quick Filter Chips -->
+            <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                <button onclick="filterTasks('all')" id="filter-all" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shrink-0">Alle Taken</button>
+                <button onclick="filterTasks('studie')" id="filter-studie" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0">Studie</button>
+                <button onclick="filterTasks('financieen')" id="filter-financieen" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0">Financiën</button>
+                <button onclick="filterTasks('persoonlijk')" id="filter-persoonlijk" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0">Persoonlijk</button>
+            </div>
+
+            <!-- Tasks List -->
+            <div id="tasks-container" class="space-y-3">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- NOTITIES PAGE -->
+        <section id="page-notities" class="space-y-4 pb-20 hidden flex flex-col h-[calc(100vh-140px)]">
+            <div class="flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1" id="notes-tabs">
+                    <!-- Note switcher tabs -->
+                </div>
+                <button onclick="createNewNote()" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-xl text-sm font-semibold shrink-0 shadow-md shadow-indigo-100 transition active:scale-95 flex items-center gap-1">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Notitie</span>
+                </button>
+            </div>
+
+            <!-- Rich Text Editor Container -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col flex-1 overflow-hidden">
+                <!-- Toolbar -->
+                <div class="bg-slate-50 border-b border-slate-200 p-2 flex flex-wrap gap-1 shrink-0 items-center justify-between">
+                    <div class="flex items-center gap-1 flex-wrap">
+                        <button onclick="formatDoc('bold')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Vetgedrukt"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                        <button onclick="formatDoc('italic')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Cursief"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                        <button onclick="formatDoc('formatBlock', '<h1>')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 font-bold text-xs transition" title="Kop 1">H1</button>
+                        <button onclick="formatDoc('formatBlock', '<h2>')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 font-bold text-xs transition" title="Kop 2">H2</button>
+                        <button onclick="formatDoc('insertUnorderedList')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Opsomming"><i data-lucide="list" class="w-4 h-4"></i></button>
+                        <button onclick="formatDoc('insertOrderedList')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Genummerde lijst"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="save-status" class="text-[10px] text-emerald-600 font-medium">Opgeslagen</span>
+                        <button onclick="deleteCurrentNote()" class="p-1.5 rounded-lg hover:bg-red-50 text-red-600 transition" title="Verwijder notitie"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+
+                <!-- Note Title Input -->
+                <input type="text" id="active-note-title" oninput="saveCurrentNoteData()" placeholder="Notitietitel..." class="px-4 py-3 font-bold text-slate-800 text-lg border-b border-slate-100 outline-none w-full">
+
+                <!-- Editable Content Area -->
+                <div id="active-note-body" contenteditable="true" oninput="saveCurrentNoteData()" class="p-4 flex-1 overflow-y-auto outline-none text-slate-700 leading-relaxed text-sm">
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Side Navigation Drawer -->
+    <div id="drawer-backdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-slate-900/50 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+    <div id="drawer" class="fixed top-0 left-0 bottom-0 w-80 bg-white z-50 shadow-2xl -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center font-bold text-lg">
+                    WD
+                </div>
+                <div>
+                    <h3 class="font-bold">Written Down</h3>
+                    <p class="text-xs text-indigo-200">PWA App v1.0</p>
+                </div>
+            </div>
+            <button onclick="toggleDrawer(false)" class="p-1.5 rounded-lg hover:bg-white/10 text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="p-4 flex-1 overflow-y-auto space-y-4">
+            <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
+                <h4 class="font-bold text-indigo-900 text-sm mb-1 flex items-center gap-1.5">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-indigo-600"></i>
+                    Installeren als App
+                </h4>
+                <p class="text-xs text-indigo-700 leading-relaxed mb-3">
+                    Installeer "Written Down" direct via Chrome of je browsermenu voor een app-ervaring zoals TryGalaxy of een native app.
+                </p>
+                <button onclick="triggerInstall()" id="drawerInstallBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-semibold text-xs transition shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    App Installeren
+                </button>
+            </div>
+
+            <div class="space-y-1">
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">Secties</p>
+                <button onclick="switchTab('kalender'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
+                    <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i> Kalender & Agenda
+                </button>
+                <button onclick="switchTab('taken'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
+                    <i data-lucide="check-square" class="w-4 h-4 text-indigo-600"></i> Taken & Routines
+                </button>
+                <button onclick="switchTab('notities'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
+                    <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i> Notities & Editor
+                </button>
+            </div>
+
+            <div class="space-y-1 pt-2 border-t border-slate-100">
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">Gegevens & Backup</p>
+                <button onclick="exportData()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
+                    <i data-lucide="download-cloud" class="w-4 h-4 text-slate-500"></i> Exporteer Back-up
+                </button>
+                <button onclick="resetApp()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-medium text-sm transition">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Herstel Standaard Gegevens
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-100 text-center text-xs text-slate-400">
+            Written Down PWA • Gemaakt voor al je dagelijkse notities & taken
+        </div>
+    </div>
+
+    <!-- Modal: Add Event -->
+    <div id="eventModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 text-lg">Nieuwe Afspraak</h3>
+                <button onclick="closeModal('eventModal')" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleCreateEvent(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Titel</label>
+                    <input type="text" id="eventTitle" required placeholder="Bijv. Examen of Les" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Datum</label>
+                        <input type="date" id="eventDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tijd</label>
+                        <input type="time" id="eventTime" value="09:00" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Beschrijving</label>
+                    <textarea id="eventDesc" rows="2" placeholder="Optionele details..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('eventModal')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Annuleren</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition">Toevoegen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Task -->
+    <div id="taskModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 text-lg">Nieuwe Taak of Gewoonte</h3>
+                <button onclick="closeModal('taskModal')" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleCreateTask(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Taaknaam</label>
+                    <input type="text" id="taskTitle" required placeholder="Bijv. Huur betalen" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Categorie</label>
+                        <select id="taskCategory" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600 bg-white">
+                            <option value="studie">Studie</option>
+                            <option value="financieen">Financiën</option>
+                            <option value="persoonlijk">Persoonlijk</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Herhaling</label>
+                        <select id="taskRecurrence" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600 bg-white">
+                            <option value="geen">Geen herhaling</option>
+                            <option value="dagelijks">Dagelijks</option>
+                            <option value="wekelijks">Wekelijks</option>
+                            <option value="maandelijks">Maandelijks</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Deadline / Datum</label>
+                    <input type="date" id="taskDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('taskModal')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Annuleren</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition">Toevoegen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // --- PWA SETUP & MANIFEST GENERATION ---
+        const manifestData = {
+            name: "Written Down",
+            short_name: "WrittenDown",
+            start_url: "./index.html",
+            display: "standalone",
+            background_color: "#f8fafc",
+            theme_color: "#4f46e5",
+            icons: [
+                {
+                    src: "https://placehold.co/192x192/4f46e5/ffffff?text=WD",
+                    sizes: "192x192",
+                    type: "image/png"
+                },
+                {
+                    src: "https://placehold.co/512x512/4f46e5/ffffff?text=WD",
+                    sizes: "512x512",
+                    type: "image/png"
+                }
+            ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', (e) => self.skipWaiting());
+                self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+                self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+            `;
+            const swBlob = new Blob([swCode], { type: 'text/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW error', err));
+        }
+
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installHeaderBtn').classList.remove('hidden');
+        });
+
+        function triggerInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showToast('Bedankt voor het installeren van Written Down!');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('installHeaderBtn').classList.add('hidden');
+                });
+            } else {
+                showToast('Installeer via je browser-menu (Tik op "Voeg toe aan startscherm")');
+                toggleDrawer(false);
+            }
+        }
+
+        // --- APP STATE & LOCALSTORAGE ---
+        let appState = {
+            events: JSON.parse(localStorage.getItem('wd_events')) || [
+                { id: 1, title: 'Hoorcollege Informatica', date: new Date().toISOString().split('T')[0], time: '10:00', description: 'Zaal 3B' },
+                { id: 2, title: 'Inleveren huurcontract / betaling', date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0], time: '12:00', description: 'Voor de 14e, liefst voor de 8e' }
+            ],
+            tasks: JSON.parse(localStorage.getItem('wd_tasks')) || [
+                { id: 1, title: 'Lessen herhalen', category: 'studie', recurrence: 'wekelijks', dueDate: new Date().toISOString().split('T')[0], completed: false },
+                { id: 2, title: 'Tekst gelezen voor een vak (Dinsdag deadline)', category: 'studie', recurrence: 'wekelijks', dueDate: new Date().toISOString().split('T')[0], completed: false },
+                { id: 3, title: 'Huur betaald hebben (vóór 14e, liefst vóór 8e)', category: 'financieen', recurrence: 'maandelijks', dueDate: new Date().toISOString().split('T')[0], completed: false },
+                { id: 4, title: 'Spullen meenemen voor kot op zondag', category: 'persoonlijk', recurrence: 'wekelijks', dueDate: new Date().toISOString().split('T')[0], completed: false }
+            ],
+            notes: JSON.parse(localStorage.getItem('wd_notes')) || [
+                { id: '1', title: 'Belangrijke ondervindingen', body: '<p><b>Belangrijke inzichten tijdens de lessen:</b></p><ul><li>Efficiënt studeren werkt het beste met actieve herhaling.</li><li>Notities direct goed opgeslagen houden in Written Down.</li></ul><p><i>Soms zijn het belangrijke dingen zoals ondervindingen.</i></p>' },
+                { id: '2', title: 'Boodschappenlijst', body: '<p>Boodschappen voor kot:</p><ul><li>Koffiebonen</li><li>Volkoren brood</li><li>Verse groenten & fruit</li><li>Pasta & saus</li></ul>' }
+            ],
+            activeNoteId: '1',
+            activeFilter: 'all'
+        };
+
+        function saveState() {
+            localStorage.setItem('wd_events', JSON.stringify(appState.events));
+            localStorage.setItem('wd_tasks', JSON.stringify(appState.tasks));
+            localStorage.setItem('wd_notes', JSON.stringify(appState.notes));
+            updateBadges();
+        }
+
+        // --- NAVIGATION & TABS ---
+        function switchTab(tabId) {
+            ['kalender', 'taken', 'notities'].forEach(t => {
+                document.getElementById(`page-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('border-indigo-600', 'text-indigo-600', 'font-semibold');
+                document.getElementById(`tab-${t}`).classList.add('border-transparent', 'text-slate-500', 'font-medium');
+            });
+            document.getElementById(`page-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.remove('border-transparent', 'text-slate-500', 'font-medium');
+            document.getElementById(`tab-${tabId}`).classList.add('border-indigo-600', 'text-indigo-600', 'font-semibold');
+            
+            if(tabId === 'notities') {
+                renderNotesTabs();
+                loadActiveNote();
+            }
+            lucide.createIcons();
+        }
+
+        function toggleDrawer(open) {
+            const drawer = document.getElementById('drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            if(open) {
+                drawer.classList.remove('-translate-x-full');
+                backdrop.classList.remove('opacity-0', 'pointer-events-none');
+            } else {
+                drawer.classList.add('-translate-x-full');
+                backdrop.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); lucide.createIcons(); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // --- KALENDER LOGIC ---
+        function renderEvents() {
+            const container = document.getElementById('events-container');
+            if (appState.events.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm border border-slate-200">Geen afspraken gepland. Voeg er eentje toe!</div>`;
+                return;
+            }
+            
+            // Sort events by date
+            const sorted = [...appState.events].sort((a,b) => new Date(a.date) - new Date(b.date));
+            
+            container.innerHTML = sorted.map(ev => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex flex-col items-center justify-center shrink-0 font-bold">
+                            <span class="text-[10px] uppercase">${new Date(ev.date).toLocaleDateString('nl-NL', { month: 'short' })}</span>
+                            <span class="text-base leading-none">${new Date(ev.date).getDate()}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm">${ev.title}</h4>
+                            <p class="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><i data-lucide="clock" class="w-3 h-3"></i> ${ev.time} ${ev.description ? '• ' + ev.description : ''}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="openGoogleCalendar(${ev.id})" class="p-2 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition" title="Voeg toe aan Google Calendar">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="openICal(${ev.id})" class="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 transition" title="Open in iCal / Agenda App">
+                            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteEvent(${ev.id})" class="p-2 rounded-xl bg-slate-50 hover:bg-red-50 hover:text-red-600 text-slate-600 transition" title="Verwijder">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function handleCreateEvent(e) {
+            e.preventDefault();
+            const newEv = {
+                id: Date.now(),
+                title: document.getElementById('eventTitle').value,
+                date: document.getElementById('eventDate').value,
+                time: document.getElementById('eventTime').value,
+                description: document.getElementById('eventDesc').value
+            };
+            appState.events.push(newEv);
+            saveState();
+            renderEvents();
+            closeModal('eventModal');
+            e.target.reset();
+            showToast('Afspraak toegevoegd!');
+        }
+
+        function deleteEvent(id) {
+            appState.events = appState.events.filter(ev => ev.id !== id);
+            saveState();
+            renderEvents();
+            showToast('Afspraak verwijderd');
+        }
+
+        function openGoogleCalendar(id) {
+            const ev = appState.events.find(e => e.id === id);
+            if (!ev) return;
+            const cleanDate = ev.date.replace(/-/g, '');
+            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${cleanDate}T090000Z/${cleanDate}T100000Z&details=${encodeURIComponent(ev.description || 'Written Down app')}`;
+            window.open(url, '_blank');
+        }
+
+        function openICal(id) {
+            const ev = appState.events.find(e => e.id === id);
+            if (!ev) return;
+            const cleanDate = ev.date.replace(/-/g, '');
+            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Written Down PWA//NL\nBEGIN:VEVENT\nSUMMARY:${ev.title}\nDESCRIPTION:${ev.description || 'Written Down app'}\nDTSTART:${cleanDate}T090000Z\nDTEND:${cleanDate}T100000Z\nEND:VEVENT\nEND:VCALENDAR`;
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            showToast('Agenda iCal bestand geopend');
+        }
+
+        // --- TAKEN LOGIC ---
+        function renderTasks() {
+            const container = document.getElementById('tasks-container');
+            let filtered = appState.tasks;
+            if (appState.activeFilter !== 'all') {
+                filtered = appState.tasks.filter(t => t.category === appState.activeFilter);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm border border-slate-200">Geen taken in deze categorie.</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(task => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3 transition">
+                    <div class="flex items-center gap-3.5 flex-1">
+                        <button onclick="completeTask(${task.id})" class="w-6 h-6 rounded-lg border-2 ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-600'} flex items-center justify-center transition shrink-0">
+                            ${task.completed ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}
+                        </button>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-slate-800 text-sm ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-100 text-slate-600 uppercase">${task.category}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-indigo-50 text-indigo-700">Herhaling: ${task.recurrence}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="deleteTask(${task.id})" class="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Verwijder">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+            updateBadges();
+        }
+
+        function filterTasks(cat) {
+            appState.activeFilter = cat;
+            ['all', 'studie', 'financieen', 'persoonlijk'].forEach(c => {
+                const btn = document.getElementById(`filter-${c}`);
+                if(c === cat) {
+                    btn.className = "px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shrink-0";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0";
+                }
+            });
+            renderTasks();
+        }
+
+        function handleCreateTask(e) {
+            e.preventDefault();
+            const newTask = {
+                id: Date.now(),
+                title: document.getElementById('taskTitle').value,
+                category: document.getElementById('taskCategory').value,
+                recurrence: document.getElementById('taskRecurrence').value,
+                dueDate: document.getElementById('taskDate').value,
+                completed: false
+            };
+            appState.tasks.push(newTask);
+            saveState();
+            renderTasks();
+            closeModal('taskModal');
+            e.target.reset();
+            showToast('Taak toegevoegd!');
+        }
+
+        function completeTask(id) {
+            const task = appState.tasks.find(t => t.id === id);
+            if (!task) return;
+            
+            task.completed = !task.completed;
+            showToast(`Taak voltooid!`);
+
+            // If recurring, automatically schedule next occurrence
+            if (task.completed && task.recurrence !== 'geen') {
+                setTimeout(() => {
+                    let nextDate = new Date(task.dueDate || Date.now());
+                    if (task.recurrence === 'dagelijks') nextDate.setDate(nextDate.getDate() + 1);
+                    else if (task.recurrence === 'wekelijks') nextDate.setDate(nextDate.getDate() + 7);
+                    else if (task.recurrence === 'maandelijks') nextDate.setMonth(nextDate.getMonth() + 1);
+                    
+                    appState.tasks.push({
+                        ...task,
+                        id: Date.now(),
+                        dueDate: nextDate.toISOString().split('T')[0],
+                        completed: false
+                    });
+                    saveState();
+                    renderTasks();
+                    showToast(`Volgende herhaling (${task.recurrence}) ingepland!`);
+                }, 500);
+            }
+            saveState();
+            renderTasks();
+        }
+
+        function deleteTask(id) {
+            appState.tasks = appState.tasks.filter(t => t.id !== id);
+            saveState();
+            renderTasks();
+            showToast('Taak verwijderd');
+        }
+
+        function updateBadges() {
+            const incomplete = appState.tasks.filter(t => !t.completed).length;
+            document.getElementById('task-badge').innerText = incomplete;
+        }
+
+        // --- NOTITIES LOGIC ---
+        function renderNotesTabs() {
+            const container = document.getElementById('notes-tabs');
+            container.innerHTML = appState.notes.map(note => `
+                <button onclick="switchNote('${note.id}')" class="px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 transition flex items-center gap-1.5 ${note.id === appState.activeNoteId ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'}">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    ${note.title || 'Naamloze notitie'}
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function loadActiveNote() {
+            const note = appState.notes.find(n => n.id === appState.activeNoteId) || appState.notes[0];
+            if (!note) return;
+            appState.activeNoteId = note.id;
+            document.getElementById('active-note-title').value = note.title;
+            document.getElementById('active-note-body').innerHTML = note.body;
+            renderNotesTabs();
+        }
+
+        function switchNote(id) {
+            appState.activeNoteId = id;
+            loadActiveNote();
+        }
+
+        function createNewNote() {
+            const newNote = {
+                id: Date.now().toString(),
+                title: 'Nieuwe Notitie',
+                body: '<p>Begin hier met typen...</p>'
+            };
+            appState.notes.push(newNote);
+            appState.activeNoteId = newNote.id;
+            saveState();
+            loadActiveNote();
+            showToast('Nieuwe notitie aangemaakt');
+        }
+
+        function saveCurrentNoteData() {
+            const note = appState.notes.find(n => n.id === appState.activeNoteId);
+            if (!note) return;
+            note.title = document.getElementById('active-note-title').value;
+            note.body = document.getElementById('active-note-body').innerHTML;
+            saveState();
+            renderNotesTabs();
+            
+            const status = document.getElementById('save-status');
+            status.innerText = 'Opgeslagen...';
+            setTimeout(() => { status.innerText = 'Opgeslagen'; }, 800);
+        }
+
+        function deleteCurrentNote() {
+            if (appState.notes.length <= 1) {
+                showToast('Je moet minimaal 1 notitie behouden.');
+                return;
+            }
+            appState.notes = appState.notes.filter(n => n.id !== appState.activeNoteId);
+            appState.activeNoteId = appState.notes[0].id;
+            saveState();
+            loadActiveNote();
+            showToast('Notitie verwijderd');
+        }
+
+        function formatDoc(cmd, value = null) {
+            document.execCommand(cmd, false, value);
+            document.getElementById('active-note-body').focus();
+            saveCurrentNoteData();
+        }
+
+        // --- NOTIFICATIONS & UTILS ---
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showToast('Meldingen ingeschakeld!');
+                        document.getElementById('notif-dot').classList.remove('hidden');
+                        new Notification('Written Down', { body: 'Meldingen zijn succesvol ingeschakeld voor al je taken en herinneringen!' });
+                    } else {
+                        showToast('Meldingen geweigerd in browserinstellingen.');
+                    }
+                });
+            } else {
+                showToast('Browser ondersteunt geen notificaties.');
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `written_down_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Back-up geëxporteerd!');
+        }
+
+        function resetApp() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        // --- INIT ---
+        window.onload = function() {
+            renderEvents();
+            renderTasks();
+            renderNotesTabs();
+            loadActiveNote();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
