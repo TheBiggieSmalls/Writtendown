@@ -2,302 +2,394 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Written Down</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .app-shell {
+            max-width: 480px;
+            margin: 0 auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+        [contenteditable]:empty:before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-900 text-slate-800 antialiased h-screen flex justify-center overflow-hidden">
 
-    <!-- Toast Notification Container -->
-    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
-        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
-        <span id="toast-msg">Actie voltooid</span>
-    </div>
+    <!-- Mobile Shell Wrapper -->
+    <div class="app-shell bg-slate-50 w-full h-full flex flex-col relative overflow-hidden">
 
-    <!-- Top Header Bar -->
-    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-20 shadow-xs">
-        <div class="flex items-center gap-3">
-            <button onclick="toggleDrawer(true)" class="p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100 active:scale-95 transition">
-                <i data-lucide="menu" class="w-6 h-6"></i>
+        <!-- Toast Notification Container -->
+        <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[60] bg-slate-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-semibold opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2 border border-slate-700/50 w-[88%] max-w-[360px] justify-center">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span id="toast-msg">Actie voltooid</span>
+        </div>
+
+        <!-- Top Navigation Bar -->
+        <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center justify-between shrink-0 z-20 sticky top-0">
+            <div class="flex items-center gap-2.5">
+                <button onclick="toggleDrawer(true)" class="p-2 -ml-1.5 rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md shadow-indigo-200">
+                        WD
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-slate-900 text-base leading-tight tracking-tight">Written Down</h1>
+                        <p class="text-[10px] text-slate-400 font-medium leading-none">Notities, Taken & Agenda</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <button id="installHeaderBtn" onclick="triggerInstall()" class="hidden bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    App
+                </button>
+                <button onclick="requestNotificationPermission()" class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition relative" title="Notificaties">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span id="notif-dot" class="absolute top-2 right-2 w-2 h-2 bg-indigo-600 rounded-full hidden"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Segmented Tab Bar -->
+        <nav class="bg-white border-b border-slate-200 px-2 flex justify-around shrink-0 z-10">
+            <button onclick="switchTab('kalender')" id="tab-kalender" class="flex-1 py-2.5 text-center font-bold text-xs border-b-2 border-indigo-600 text-indigo-600 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+                Agenda
             </button>
-            <div class="flex items-center gap-2">
-                <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-md shadow-indigo-200">
-                    WD
-                </div>
-                <div>
-                    <h1 class="font-bold text-slate-900 leading-tight">Written Down</h1>
-                    <p class="text-[11px] text-slate-500 font-medium">Jouw dagelijkse hub</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-            <button id="installHeaderBtn" onclick="triggerInstall()" class="hidden bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                Installeer App
+            <button onclick="switchTab('taken')" id="tab-taken" class="flex-1 py-2.5 text-center font-medium text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="check-square" class="w-4 h-4"></i>
+                Taken
+                <span id="task-badge" class="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
             </button>
-            <button onclick="requestNotificationPermission()" class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition relative" title="Notificaties">
-                <i data-lucide="bell" class="w-5 h-5"></i>
-                <span id="notif-dot" class="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full hidden"></span>
+            <button onclick="switchTab('notities')" id="tab-notities" class="flex-1 py-2.5 text-center font-medium text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                Notities
             </button>
-        </div>
-    </header>
+        </nav>
 
-    <!-- Navigation Tabs -->
-    <nav class="bg-white border-b border-slate-200 px-4 flex justify-around shrink-0 z-10">
-        <button onclick="switchTab('kalender')" id="tab-kalender" class="flex-1 py-3 text-center font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600 transition flex items-center justify-center gap-2">
-            <i data-lucide="calendar" class="w-4 h-4"></i>
-            Kalender
-        </button>
-        <button onclick="switchTab('taken')" id="tab-taken" class="flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-2">
-            <i data-lucide="check-square" class="w-4 h-4"></i>
-            Taken <span id="task-badge" class="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
-        </button>
-        <button onclick="switchTab('notities')" id="tab-notities" class="flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-2">
-            <i data-lucide="file-text" class="w-4 h-4"></i>
-            Notities
-        </button>
-    </nav>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto relative bg-slate-50 p-4 max-w-2xl mx-auto w-full">
-        
-        <!-- KALENDER PAGE -->
-        <section id="page-kalender" class="space-y-4 pb-20">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-                <div>
-                    <h2 class="font-bold text-slate-800 text-lg" id="current-month-year">Agenda & Kalender</h2>
-                    <p class="text-xs text-slate-500">Beheer je afspraken en synchroniseer direct</p>
-                </div>
-                <button onclick="openModal('eventModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-100 transition active:scale-95">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    Nieuw
-                </button>
-            </div>
-
-            <!-- Event List -->
-            <div id="events-container" class="space-y-3">
-                <!-- Dynamically populated -->
-            </div>
-        </section>
-
-        <!-- TAKEN PAGE -->
-        <section id="page-taken" class="space-y-4 pb-20 hidden">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-                <div>
-                    <h2 class="font-bold text-slate-800 text-lg">Taken & Routines</h2>
-                    <p class="text-xs text-slate-500">Vaste gewoontes en snelle acties</p>
-                </div>
-                <button onclick="openModal('taskModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-100 transition active:scale-95">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    Taak
-                </button>
-            </div>
-
-            <!-- Quick Filter Chips -->
-            <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                <button onclick="filterTasks('all')" id="filter-all" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shrink-0">Alle Taken</button>
-                <button onclick="filterTasks('studie')" id="filter-studie" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0">Studie</button>
-                <button onclick="filterTasks('financieen')" id="filter-financieen" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0">Financiën</button>
-                <button onclick="filterTasks('persoonlijk')" id="filter-persoonlijk" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0">Persoonlijk</button>
-            </div>
-
-            <!-- Tasks List -->
-            <div id="tasks-container" class="space-y-3">
-                <!-- Dynamically populated -->
-            </div>
-        </section>
-
-        <!-- NOTITIES PAGE -->
-        <section id="page-notities" class="space-y-4 pb-20 hidden flex flex-col h-[calc(100vh-140px)]">
-            <div class="flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1" id="notes-tabs">
-                    <!-- Note switcher tabs -->
-                </div>
-                <button onclick="createNewNote()" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-xl text-sm font-semibold shrink-0 shadow-md shadow-indigo-100 transition active:scale-95 flex items-center gap-1">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span>Notitie</span>
-                </button>
-            </div>
-
-            <!-- Rich Text Editor Container -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col flex-1 overflow-hidden">
-                <!-- Toolbar -->
-                <div class="bg-slate-50 border-b border-slate-200 p-2 flex flex-wrap gap-1 shrink-0 items-center justify-between">
-                    <div class="flex items-center gap-1 flex-wrap">
-                        <button onclick="formatDoc('bold')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Vetgedrukt"><i data-lucide="bold" class="w-4 h-4"></i></button>
-                        <button onclick="formatDoc('italic')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Cursief"><i data-lucide="italic" class="w-4 h-4"></i></button>
-                        <button onclick="formatDoc('formatBlock', '<h1>')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 font-bold text-xs transition" title="Kop 1">H1</button>
-                        <button onclick="formatDoc('formatBlock', '<h2>')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 font-bold text-xs transition" title="Kop 2">H2</button>
-                        <button onclick="formatDoc('insertUnorderedList')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Opsomming"><i data-lucide="list" class="w-4 h-4"></i></button>
-                        <button onclick="formatDoc('insertOrderedList')" class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition" title="Genummerde lijst"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span id="save-status" class="text-[10px] text-emerald-600 font-medium">Opgeslagen</span>
-                        <button onclick="deleteCurrentNote()" class="p-1.5 rounded-lg hover:bg-red-50 text-red-600 transition" title="Verwijder notitie"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </div>
-                </div>
-
-                <!-- Note Title Input -->
-                <input type="text" id="active-note-title" oninput="saveCurrentNoteData()" placeholder="Notitietitel..." class="px-4 py-3 font-bold text-slate-800 text-lg border-b border-slate-100 outline-none w-full">
-
-                <!-- Editable Content Area -->
-                <div id="active-note-body" contenteditable="true" oninput="saveCurrentNoteData()" class="p-4 flex-1 overflow-y-auto outline-none text-slate-700 leading-relaxed text-sm">
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Side Navigation Drawer -->
-    <div id="drawer-backdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-slate-900/50 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
-    <div id="drawer" class="fixed top-0 left-0 bottom-0 w-80 bg-white z-50 shadow-2xl -translate-x-full transition-transform duration-300 flex flex-col">
-        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center font-bold text-lg">
-                    WD
-                </div>
-                <div>
-                    <h3 class="font-bold">Written Down</h3>
-                    <p class="text-xs text-indigo-200">PWA App v1.0</p>
-                </div>
-            </div>
-            <button onclick="toggleDrawer(false)" class="p-1.5 rounded-lg hover:bg-white/10 text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-
-        <div class="p-4 flex-1 overflow-y-auto space-y-4">
-            <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
-                <h4 class="font-bold text-indigo-900 text-sm mb-1 flex items-center gap-1.5">
-                    <i data-lucide="smartphone" class="w-4 h-4 text-indigo-600"></i>
-                    Installeren als App
-                </h4>
-                <p class="text-xs text-indigo-700 leading-relaxed mb-3">
-                    Installeer "Written Down" direct via Chrome of je browsermenu voor een app-ervaring zoals TryGalaxy of een native app.
-                </p>
-                <button onclick="triggerInstall()" id="drawerInstallBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-semibold text-xs transition shadow-sm flex items-center justify-center gap-2">
-                    <i data-lucide="download" class="w-4 h-4"></i>
-                    App Installeren
-                </button>
-            </div>
-
-            <div class="space-y-1">
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">Secties</p>
-                <button onclick="switchTab('kalender'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
-                    <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i> Kalender & Agenda
-                </button>
-                <button onclick="switchTab('taken'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
-                    <i data-lucide="check-square" class="w-4 h-4 text-indigo-600"></i> Taken & Routines
-                </button>
-                <button onclick="switchTab('notities'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
-                    <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i> Notities & Editor
-                </button>
-            </div>
-
-            <div class="space-y-1 pt-2 border-t border-slate-100">
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">Gegevens & Backup</p>
-                <button onclick="exportData()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
-                    <i data-lucide="download-cloud" class="w-4 h-4 text-slate-500"></i> Exporteer Back-up
-                </button>
-                <button onclick="resetApp()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-medium text-sm transition">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Herstel Standaard Gegevens
-                </button>
-            </div>
-        </div>
-
-        <div class="p-4 border-t border-slate-100 text-center text-xs text-slate-400">
-            Written Down PWA • Gemaakt voor al je dagelijkse notities & taken
-        </div>
-    </div>
-
-    <!-- Modal: Add Event -->
-    <div id="eventModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-slate-900 text-lg">Nieuwe Afspraak</h3>
-                <button onclick="closeModal('eventModal')" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <form onsubmit="handleCreateEvent(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Titel</label>
-                    <input type="text" id="eventTitle" required placeholder="Bijv. Examen of Les" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
+        <!-- Main Content Viewport -->
+        <main class="flex-1 overflow-y-auto relative bg-slate-50 p-3.5 space-y-4">
+            
+            <!-- KALENDER PAGE -->
+            <section id="page-kalender" class="space-y-3 pb-16">
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Datum</label>
-                        <input type="date" id="eventDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+                        <h2 class="font-bold text-slate-900 text-base">Agenda & Afspraken</h2>
+                        <p class="text-[11px] text-slate-500">Open direct in je mobiele agenda-app</p>
+                    </div>
+                    <button onclick="openEventModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow-md shadow-indigo-100 transition active:scale-95">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        Nieuw
+                    </button>
+                </div>
+
+                <!-- Event Cards List -->
+                <div id="events-container" class="space-y-2.5">
+                    <!-- Dynamically populated -->
+                </div>
+            </section>
+
+            <!-- TAKEN PAGE -->
+            <section id="page-taken" class="space-y-3 pb-16 hidden">
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+                    <div>
+                        <h2 class="font-bold text-slate-900 text-base">Taken & Gewoontes</h2>
+                        <p class="text-[11px] text-slate-500">Herhaaldelijke taken & snelle acties</p>
+                    </div>
+                    <button onclick="openTaskModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow-md shadow-indigo-100 transition active:scale-95">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        Taak
+                    </button>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                    <button onclick="filterTasks('all')" id="filter-all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shrink-0">Alles</button>
+                    <button onclick="filterTasks('studie')" id="filter-studie" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-600 shrink-0">Studie</button>
+                    <button onclick="filterTasks('financieen')" id="filter-financieen" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-600 shrink-0">Financiën</button>
+                    <button onclick="filterTasks('kot')" id="filter-kot" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-600 shrink-0">Kot & Huishouden</button>
+                </div>
+
+                <!-- Tasks List -->
+                <div id="tasks-container" class="space-y-2.5">
+                    <!-- Dynamically populated -->
+                </div>
+            </section>
+
+            <!-- NOTITIES PAGE -->
+            <section id="page-notities" class="space-y-3 pb-16 hidden">
+                <!-- VIEW 1: Notes List Overview -->
+                <div id="notes-list-view" class="space-y-3">
+                    
+                    <!-- Search Bar & New Note Button -->
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="note-search" oninput="renderNotesList()" placeholder="Zoek notities..." class="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 outline-none focus:border-indigo-600">
+                        </div>
+                        <button onclick="createNewNote()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold shrink-0 shadow-md shadow-indigo-100 transition flex items-center gap-1 active:scale-95">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            Nieuw
+                        </button>
+                    </div>
+
+                    <!-- Mappen / Categorieën Selector -->
+                    <div class="bg-white p-3 rounded-2xl border border-slate-200/80 space-y-2 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="folder" class="w-3.5 h-3.5 text-indigo-600"></i> Mappen
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="cleanupTempNotes()" class="text-[11px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-lg transition flex items-center gap-1" title="Schoon tijdelijke notities op">
+                                    <i data-lucide="sparkles" class="w-3 h-3"></i> Schoon tijdelijk op
+                                </button>
+                                <button onclick="openFolderModal()" class="text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-lg transition flex items-center gap-1">
+                                    <i data-lucide="folder-plus" class="w-3 h-3"></i> Map toevoegen
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Horizontal Scrollable Folder Chips -->
+                        <div id="folder-chips" class="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+                            <!-- Dynamically populated folder chips -->
+                        </div>
+                    </div>
+
+                    <!-- Notes Grid / Cards -->
+                    <div id="notes-grid" class="grid grid-cols-1 gap-2.5">
+                        <!-- Dynamically populated notes cards -->
+                    </div>
+                </div>
+
+                <!-- VIEW 2: Note Detail & Rich Text Editor -->
+                <div id="note-editor-view" class="hidden flex flex-col h-[calc(100vh-140px)] bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                    <!-- Editor Top Bar -->
+                    <div class="bg-slate-50 border-b border-slate-200 p-2 flex items-center justify-between shrink-0 gap-2">
+                        <button onclick="closeNoteEditor()" class="px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 hover:bg-slate-100 active:scale-95 transition">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            Terug
+                        </button>
+                        
+                        <!-- Map Selection Dropdown in Editor -->
+                        <div class="flex items-center gap-1.5 flex-1 justify-center max-w-[170px]">
+                            <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                            <select id="active-note-folder" onchange="saveCurrentNoteData()" class="bg-white border border-slate-200 text-slate-700 font-semibold text-xs px-2 py-1 rounded-xl outline-none w-full truncate">
+                                <!-- Dynamically populated folder options -->
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-1 shrink-0">
+                            <span id="save-status" class="text-[10px] text-emerald-600 font-bold hidden sm:inline">Opgeslagen</span>
+                            <button onclick="deleteCurrentNote()" class="p-1.5 rounded-xl hover:bg-red-50 text-red-600 transition" title="Verwijder notitie">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Formatting Toolbar -->
+                    <div class="bg-white border-b border-slate-100 p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
+                        <button onclick="formatDoc('bold')" class="p-2 rounded-lg hover:bg-slate-100 text-slate-700 font-bold text-xs" title="Vet"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                        <button onclick="formatDoc('italic')" class="p-2 rounded-lg hover:bg-slate-100 text-slate-700 text-xs" title="Cursief"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                        <button onclick="formatDoc('formatBlock', '<h1>')" class="px-2 py-1 rounded-lg hover:bg-slate-100 text-slate-800 font-extrabold text-xs">H1</button>
+                        <button onclick="formatDoc('formatBlock', '<h2>')" class="px-2 py-1 rounded-lg hover:bg-slate-100 text-slate-800 font-bold text-xs">H2</button>
+                        <button onclick="formatDoc('insertUnorderedList')" class="p-2 rounded-lg hover:bg-slate-100 text-slate-700" title="Opsomming"><i data-lucide="list" class="w-4 h-4"></i></button>
+                        <button onclick="formatDoc('insertOrderedList')" class="p-2 rounded-lg hover:bg-slate-100 text-slate-700" title="Nummers"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
+                    </div>
+
+                    <!-- Editable Title -->
+                    <input type="text" id="active-note-title" oninput="saveCurrentNoteData()" placeholder="Titel van notitie..." class="px-4 py-2.5 font-extrabold text-slate-900 text-base border-b border-slate-100 outline-none w-full bg-white">
+
+                    <!-- Contenteditable Body -->
+                    <div id="active-note-body" contenteditable="true" placeholder="Typ hier je notities of boodschappen..." oninput="saveCurrentNoteData()" class="p-4 flex-1 overflow-y-auto outline-none text-slate-700 leading-normal text-sm space-y-2">
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Side Navigation Drawer -->
+        <div id="drawer-backdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-slate-900/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+        <div id="drawer" class="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 shadow-2xl -translate-x-full transition-transform duration-300 flex flex-col">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center font-black text-sm">
+                        WD
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tijd</label>
-                        <input type="time" id="eventTime" value="09:00" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+                        <h3 class="font-bold text-sm">Written Down</h3>
+                        <p class="text-[10px] text-indigo-200">Mobiele PWA App</p>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Beschrijving</label>
-                    <textarea id="eventDesc" rows="2" placeholder="Optionele details..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600"></textarea>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('eventModal')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Annuleren</button>
-                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition">Toevoegen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Add Task -->
-    <div id="taskModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-slate-900 text-lg">Nieuwe Taak of Gewoonte</h3>
-                <button onclick="closeModal('taskModal')" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="toggleDrawer(false)" class="p-1 rounded-lg hover:bg-white/10 text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <form onsubmit="handleCreateTask(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Taaknaam</label>
-                    <input type="text" id="taskTitle" required placeholder="Bijv. Huur betalen" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+
+            <div class="p-3.5 flex-1 overflow-y-auto space-y-4">
+                <!-- Installation Container (Dynamically hidden when installed) -->
+                <div id="drawerInstallContainer" class="bg-indigo-50 border border-indigo-100 p-3.5 rounded-2xl">
+                    <h4 class="font-bold text-indigo-900 text-xs mb-1 flex items-center gap-1.5">
+                        <i data-lucide="smartphone" class="w-4 h-4 text-indigo-600"></i>
+                        Installeer als App
+                    </h4>
+                    <p class="text-[11px] text-indigo-700 leading-tight mb-2.5" id="installInstructionText">
+                        Voeg Written Down toe aan je startscherm voor snelle offline toegang en een native ervaring.
+                    </p>
+                    <button onclick="triggerInstall()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl font-bold text-xs transition shadow-xs flex items-center justify-center gap-1.5">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        Installeren op Telefoon
+                    </button>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Categorie</label>
-                        <select id="taskCategory" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600 bg-white">
-                            <option value="studie">Studie</option>
-                            <option value="financieen">Financiën</option>
-                            <option value="persoonlijk">Persoonlijk</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Herhaling</label>
-                        <select id="taskRecurrence" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600 bg-white">
-                            <option value="geen">Geen herhaling</option>
-                            <option value="dagelijks">Dagelijks</option>
-                            <option value="wekelijks">Wekelijks</option>
-                            <option value="maandelijks">Maandelijks</option>
-                        </select>
-                    </div>
+
+                <div class="space-y-1">
+                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2 py-1">Secties</p>
+                    <button onclick="switchTab('kalender'); toggleDrawer(false);" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-semibold text-xs transition">
+                        <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i> Agenda & Afspraken
+                    </button>
+                    <button onclick="switchTab('taken'); toggleDrawer(false);" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-semibold text-xs transition">
+                        <i data-lucide="check-square" class="w-4 h-4 text-indigo-600"></i> Taken & Gewoontes
+                    </button>
+                    <button onclick="switchTab('notities'); toggleDrawer(false);" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-semibold text-xs transition">
+                        <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i> Notities & Mappen
+                    </button>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Deadline / Datum</label>
-                    <input type="date" id="taskDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600">
+
+                <div class="space-y-1 pt-3 border-t border-slate-100">
+                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2 py-1">Beheer</p>
+                    <button onclick="exportData()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-xs transition">
+                        <i data-lucide="download-cloud" class="w-4 h-4 text-slate-500"></i> Exporteer Back-up
+                    </button>
+                    <button onclick="resetApp()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-red-50 text-red-600 font-medium text-xs transition">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Herstel Standaard Gegevens
+                    </button>
                 </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('taskModal')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Annuleren</button>
-                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition">Toevoegen</button>
-                </div>
-            </form>
+            </div>
+
+            <div class="p-3 border-t border-slate-100 text-center text-[10px] text-slate-400 font-medium">
+                Written Down • Offline PWA App
+            </div>
         </div>
+
+        <!-- MODAL: ADD MAP / FOLDER -->
+        <div id="folderModal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h3 class="font-bold text-slate-900 text-base">Nieuwe Map Maken</h3>
+                    <button onclick="closeModal('folderModal')" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form onsubmit="handleCreateFolder(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Mapnaam</label>
+                        <input type="text" id="newFolderName" required placeholder="Bijv. Projecten, Ideeën of Recepten" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-indigo-600">
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="closeModal('folderModal')" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Annuleren</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition">Map Maken</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: EVENT EDIT / CREATE -->
+        <div id="eventModal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h3 class="font-bold text-slate-900 text-base" id="eventModalTitle">Afspraak Bewerken</h3>
+                    <button onclick="closeModal('eventModal')" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form onsubmit="handleSaveEvent(event)" class="space-y-3">
+                    <input type="hidden" id="eventId">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Titel afspraak</label>
+                        <input type="text" id="eventTitle" required placeholder="Bijv. Examen of Hoorcollege" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-indigo-600">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Datum</label>
+                            <input type="date" id="eventDate" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-600">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Tijd</label>
+                            <input type="time" id="eventTime" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-600">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Details / Locatie</label>
+                        <textarea id="eventDesc" rows="2" placeholder="Optionele details..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-600"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="closeModal('eventModal')" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Annuleren</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition">Opslaan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: TASK EDIT / CREATE -->
+        <div id="taskModal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h3 class="font-bold text-slate-900 text-base" id="taskModalTitle">Taak Bewerken</h3>
+                    <button onclick="closeModal('taskModal')" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form onsubmit="handleSaveTask(event)" class="space-y-3">
+                    <input type="hidden" id="taskId">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Taaknaam</label>
+                        <input type="text" id="taskTitle" required placeholder="Bijv. Huur betalen" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-indigo-600">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Categorie</label>
+                            <select id="taskCategory" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-600 bg-white">
+                                <option value="studie">Studie</option>
+                                <option value="financieen">Financiën</option>
+                                <option value="kot">Kot & Huishouden</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Herhaling</label>
+                            <select id="taskRecurrence" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-600 bg-white">
+                                <option value="geen">Geen herhaling</option>
+                                <option value="dagelijks">Dagelijks</option>
+                                <option value="wekelijks">Wekelijks</option>
+                                <option value="maandelijks">Maandelijks</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Vervaldatum</label>
+                        <input type="date" id="taskDate" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-600">
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="closeModal('taskModal')" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Annuleren</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition">Opslaan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
 
     <!-- Application Script -->
     <script>
-        // --- PWA SETUP & MANIFEST GENERATION ---
+        // --- 1. PWA & OFFLINE SERVICE WORKER ---
         const manifestData = {
             name: "Written Down",
             short_name: "WrittenDown",
@@ -305,101 +397,136 @@
             display: "standalone",
             background_color: "#f8fafc",
             theme_color: "#4f46e5",
+            orientation: "portrait",
             icons: [
-                {
-                    src: "https://placehold.co/192x192/4f46e5/ffffff?text=WD",
-                    sizes: "192x192",
-                    type: "image/png"
-                },
-                {
-                    src: "https://placehold.co/512x512/4f46e5/ffffff?text=WD",
-                    sizes: "512x512",
-                    type: "image/png"
-                }
+                { src: "https://placehold.co/192x192/4f46e5/ffffff?text=WD", sizes: "192x192", type: "image/png" },
+                { src: "https://placehold.co/512x512/4f46e5/ffffff?text=WD", sizes: "512x512", type: "image/png" }
             ]
         };
         const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-        const manifestURL = URL.createObjectURL(manifestBlob);
         const link = document.createElement('link');
         link.rel = 'manifest';
-        link.href = manifestURL;
+        link.href = URL.createObjectURL(manifestBlob);
         document.head.appendChild(link);
 
-        // Service Worker registration
         if ('serviceWorker' in navigator) {
             const swCode = `
-                self.addEventListener('install', (e) => self.skipWaiting());
+                const CACHE_NAME = 'writtendown-v3';
+                self.addEventListener('install', (e) => {
+                    self.skipWaiting();
+                    e.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => {
+                            return cache.addAll(['./', './index.html']);
+                        })
+                    );
+                });
                 self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
-                self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+                self.addEventListener('fetch', (e) => {
+                    e.respondWith(
+                        caches.match(e.request).then((res) => res || fetch(e.request).then((fetchRes) => {
+                            return caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(e.request, fetchRes.clone());
+                                return fetchRes;
+                            });
+                        }).catch(() => caches.match('./index.html')))
+                    );
+                });
             `;
             const swBlob = new Blob([swCode], { type: 'text/javascript' });
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW error', err));
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Registration:', err));
         }
 
         let deferredPrompt = null;
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            document.getElementById('installHeaderBtn').classList.remove('hidden');
+            checkInstallability();
         });
+
+        function checkInstallability() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+            if (isStandalone) {
+                document.getElementById('installHeaderBtn')?.classList.add('hidden');
+                document.getElementById('drawerInstallContainer')?.classList.add('hidden');
+            } else {
+                document.getElementById('installHeaderBtn')?.classList.remove('hidden');
+                document.getElementById('drawerInstallContainer')?.classList.remove('hidden');
+                
+                if (isIOS) {
+                    const textEl = document.getElementById('installInstructionText');
+                    if (textEl) textEl.innerText = 'Tik onderaan de browser op het "Delen" icoon en kies "Zet op beginscherm" om de app te installeren.';
+                }
+            }
+        }
 
         function triggerInstall() {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        showToast('Bedankt voor het installeren van Written Down!');
+                deferredPrompt.userChoice.then((choice) => {
+                    if (choice.outcome === 'accepted') {
+                        showToast('Written Down is succesvol geïnstalleerd!');
                     }
                     deferredPrompt = null;
-                    document.getElementById('installHeaderBtn').classList.add('hidden');
+                    checkInstallability();
                 });
+            } else if (isIOS) {
+                showToast('Tik op Delen ➔ "Zet op beginscherm" op iOS');
+                toggleDrawer(false);
             } else {
-                showToast('Installeer via je browser-menu (Tik op "Voeg toe aan startscherm")');
+                showToast('Tik in de browser op het menu (⋮) en kies "Toevoegen aan startscherm"');
                 toggleDrawer(false);
             }
         }
 
-        // --- APP STATE & LOCALSTORAGE ---
+        // --- 2. LOCALSTORAGE STATE MANAGEMENT ---
+        const todayStr = new Date().toISOString().split('T')[0];
+
         let appState = {
             events: JSON.parse(localStorage.getItem('wd_events')) || [
-                { id: 1, title: 'Hoorcollege Informatica', date: new Date().toISOString().split('T')[0], time: '10:00', description: 'Zaal 3B' },
-                { id: 2, title: 'Inleveren huurcontract / betaling', date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0], time: '12:00', description: 'Voor de 14e, liefst voor de 8e' }
+                { id: 1, title: 'Tekst lezen voor vak (Dinsdag)', date: todayStr, time: '14:00', description: 'Hoofdstuk 3 en 4 doornemen' },
+                { id: 2, title: 'Huur overmaken (vóór 14e)', date: todayStr, time: '09:00', description: 'Liefst voor de 8ste overmaken' }
             ],
             tasks: JSON.parse(localStorage.getItem('wd_tasks')) || [
-                { id: 1, title: 'Lessen herhalen', category: 'studie', recurrence: 'wekelijks', dueDate: new Date().toISOString().split('T')[0], completed: false },
-                { id: 2, title: 'Tekst gelezen voor een vak (Dinsdag deadline)', category: 'studie', recurrence: 'wekelijks', dueDate: new Date().toISOString().split('T')[0], completed: false },
-                { id: 3, title: 'Huur betaald hebben (vóór 14e, liefst vóór 8e)', category: 'financieen', recurrence: 'maandelijks', dueDate: new Date().toISOString().split('T')[0], completed: false },
-                { id: 4, title: 'Spullen meenemen voor kot op zondag', category: 'persoonlijk', recurrence: 'wekelijks', dueDate: new Date().toISOString().split('T')[0], completed: false }
+                { id: 101, title: 'Lessen herhalen (Vaste gewoonte)', category: 'studie', recurrence: 'wekelijks', dueDate: todayStr, completed: false },
+                { id: 102, title: 'Tekst gelezen hebben voor vak', category: 'studie', recurrence: 'wekelijks', dueDate: todayStr, completed: false },
+                { id: 103, title: 'Huur betaald hebben (vóór 14e, liefst vóór 8e)', category: 'financieen', recurrence: 'maandelijks', dueDate: todayStr, completed: false },
+                { id: 104, title: 'Spullen meenemen voor kot op zondag', category: 'kot', recurrence: 'wekelijks', dueDate: todayStr, completed: false }
             ],
+            folders: JSON.parse(localStorage.getItem('wd_folders')) || [
+                "Alle", "Korte notities", "Belangrijke ondervindingen", "Boodschappen", "Studie"
+            ],
+            selectedFolder: "Alle",
             notes: JSON.parse(localStorage.getItem('wd_notes')) || [
-                { id: '1', title: 'Belangrijke ondervindingen', body: '<p><b>Belangrijke inzichten tijdens de lessen:</b></p><ul><li>Efficiënt studeren werkt het beste met actieve herhaling.</li><li>Notities direct goed opgeslagen houden in Written Down.</li></ul><p><i>Soms zijn het belangrijke dingen zoals ondervindingen.</i></p>' },
-                { id: '2', title: 'Boodschappenlijst', body: '<p>Boodschappen voor kot:</p><ul><li>Koffiebonen</li><li>Volkoren brood</li><li>Verse groenten & fruit</li><li>Pasta & saus</li></ul>' }
+                { id: 'n1', title: 'Belangrijke ondervindingen', folder: 'Belangrijke ondervindingen', updatedAt: 'Vandaag', body: '<h3>Inzichten & Lesnotities</h3><ul><li>Efficiënt studeren werkt het beste met korte actieve herhalingen.</li><li>Kot spullen altijd vrijdagavond al klaarzetten.</li></ul>' },
+                { id: 'n2', title: 'Boodschappenlijst Kot', folder: 'Boodschappen', updatedAt: 'Gisteren', body: '<h3>Wekelijkse boodschappen</h3><ul><li>Koffie en havermelk</li><li>Brood en beleg</li><li>Verse groenten & pasta</li></ul>' },
+                { id: 'n3', title: 'Tijdelijk nummer of code', folder: 'Korte notities', updatedAt: 'Vandaag', body: '<p>Wificode kantoor: 9876-ABCD. Mag binnenkort weg.</p>' }
             ],
-            activeNoteId: '1',
+            activeNoteId: null,
             activeFilter: 'all'
         };
 
         function saveState() {
             localStorage.setItem('wd_events', JSON.stringify(appState.events));
             localStorage.setItem('wd_tasks', JSON.stringify(appState.tasks));
+            localStorage.setItem('wd_folders', JSON.stringify(appState.folders));
             localStorage.setItem('wd_notes', JSON.stringify(appState.notes));
             updateBadges();
         }
 
-        // --- NAVIGATION & TABS ---
+        // --- 3. NAVIGATION SYSTEM ---
         function switchTab(tabId) {
             ['kalender', 'taken', 'notities'].forEach(t => {
                 document.getElementById(`page-${t}`).classList.add('hidden');
-                document.getElementById(`tab-${t}`).classList.remove('border-indigo-600', 'text-indigo-600', 'font-semibold');
-                document.getElementById(`tab-${t}`).classList.add('border-transparent', 'text-slate-500', 'font-medium');
+                document.getElementById(`tab-${t}`).className = "flex-1 py-2.5 text-center font-medium text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-1.5";
             });
             document.getElementById(`page-${tabId}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabId}`).classList.remove('border-transparent', 'text-slate-500', 'font-medium');
-            document.getElementById(`tab-${tabId}`).classList.add('border-indigo-600', 'text-indigo-600', 'font-semibold');
-            
-            if(tabId === 'notities') {
-                renderNotesTabs();
-                loadActiveNote();
+            document.getElementById(`tab-${tabId}`).className = "flex-1 py-2.5 text-center font-bold text-xs border-b-2 border-indigo-600 text-indigo-600 transition flex items-center justify-center gap-1.5";
+
+            if (tabId === 'notities') {
+                closeNoteEditor();
+                renderNotesList();
             }
             lucide.createIcons();
         }
@@ -408,6 +535,7 @@
             const drawer = document.getElementById('drawer');
             const backdrop = document.getElementById('drawer-backdrop');
             if(open) {
+                checkInstallability();
                 drawer.classList.remove('-translate-x-full');
                 backdrop.classList.remove('opacity-0', 'pointer-events-none');
             } else {
@@ -425,40 +553,40 @@
             toast.classList.remove('opacity-0', 'pointer-events-none');
             setTimeout(() => {
                 toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
+            }, 2500);
         }
 
-        // --- KALENDER LOGIC ---
+        // --- 4. AGENDA / KALENDER LOGIC & NATIVE INTENTS ---
         function renderEvents() {
             const container = document.getElementById('events-container');
             if (appState.events.length === 0) {
-                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm border border-slate-200">Geen afspraken gepland. Voeg er eentje toe!</div>`;
+                container.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-xs font-medium border border-slate-200">Geen afspraken gepland.</div>`;
                 return;
             }
-            
-            // Sort events by date
+
             const sorted = [...appState.events].sort((a,b) => new Date(a.date) - new Date(b.date));
-            
             container.innerHTML = sorted.map(ev => `
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
-                    <div class="flex items-start gap-3">
-                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex flex-col items-center justify-center shrink-0 font-bold">
-                            <span class="text-[10px] uppercase">${new Date(ev.date).toLocaleDateString('nl-NL', { month: 'short' })}</span>
-                            <span class="text-base leading-none">${new Date(ev.date).getDate()}</span>
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-3 flex-1 min-w-0" onclick="openEventModal(${ev.id})">
+                        <div class="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-xl flex flex-col items-center justify-center shrink-0 font-bold">
+                            <span class="text-[9px] uppercase font-black tracking-wider">${new Date(ev.date).toLocaleDateString('nl-NL', { month: 'short' })}</span>
+                            <span class="text-sm leading-none">${new Date(ev.date).getDate()}</span>
                         </div>
-                        <div>
-                            <h4 class="font-bold text-slate-800 text-sm">${ev.title}</h4>
-                            <p class="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><i data-lucide="clock" class="w-3 h-3"></i> ${ev.time} ${ev.description ? '• ' + ev.description : ''}</p>
+                        <div class="min-w-0 flex-1">
+                            <h4 class="font-bold text-slate-800 text-xs truncate">${ev.title}</h4>
+                            <p class="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                                <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> ${ev.time} ${ev.description ? '• ' + ev.description : ''}
+                            </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <button onclick="openGoogleCalendar(${ev.id})" class="p-2 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition" title="Voeg toe aan Google Calendar">
-                            <i data-lucide="external-link" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="openICal(${ev.id})" class="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 transition" title="Open in iCal / Agenda App">
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="openNativeCalendarIntent(${ev.id})" class="p-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition" title="Open in mobiele agenda app">
                             <i data-lucide="calendar-plus" class="w-4 h-4"></i>
                         </button>
-                        <button onclick="deleteEvent(${ev.id})" class="p-2 rounded-xl bg-slate-50 hover:bg-red-50 hover:text-red-600 text-slate-600 transition" title="Verwijder">
+                        <button onclick="openEventModal(${ev.id})" class="p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition" title="Bewerken">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteEvent(${ev.id})" class="p-2 rounded-xl hover:bg-red-50 text-red-600 transition" title="Verwijderen">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -467,21 +595,49 @@
             lucide.createIcons();
         }
 
-        function handleCreateEvent(e) {
+        function openEventModal(id = null) {
+            if (id) {
+                const ev = appState.events.find(e => e.id === id);
+                if (!ev) return;
+                document.getElementById('eventId').value = ev.id;
+                document.getElementById('eventTitle').value = ev.title;
+                document.getElementById('eventDate').value = ev.date;
+                document.getElementById('eventTime').value = ev.time;
+                document.getElementById('eventDesc').value = ev.description || '';
+                document.getElementById('eventModalTitle').innerText = 'Afspraak Bewerken';
+            } else {
+                document.getElementById('eventId').value = '';
+                document.getElementById('eventTitle').value = '';
+                document.getElementById('eventDate').value = todayStr;
+                document.getElementById('eventTime').value = '10:00';
+                document.getElementById('eventDesc').value = '';
+                document.getElementById('eventModalTitle').innerText = 'Nieuwe Afspraak';
+            }
+            openModal('eventModal');
+        }
+
+        function handleSaveEvent(e) {
             e.preventDefault();
-            const newEv = {
-                id: Date.now(),
+            const id = document.getElementById('eventId').value;
+            const eventData = {
+                id: id ? parseInt(id) : Date.now(),
                 title: document.getElementById('eventTitle').value,
                 date: document.getElementById('eventDate').value,
                 time: document.getElementById('eventTime').value,
                 description: document.getElementById('eventDesc').value
             };
-            appState.events.push(newEv);
+
+            if (id) {
+                const idx = appState.events.findIndex(ev => ev.id === parseInt(id));
+                if (idx !== -1) appState.events[idx] = eventData;
+            } else {
+                appState.events.push(eventData);
+            }
+
             saveState();
             renderEvents();
             closeModal('eventModal');
-            e.target.reset();
-            showToast('Afspraak toegevoegd!');
+            showToast(id ? 'Afspraak bijgewerkt!' : 'Afspraak toegevoegd!');
         }
 
         function deleteEvent(id) {
@@ -491,26 +647,27 @@
             showToast('Afspraak verwijderd');
         }
 
-        function openGoogleCalendar(id) {
+        function openNativeCalendarIntent(id) {
             const ev = appState.events.find(e => e.id === id);
             if (!ev) return;
+
             const cleanDate = ev.date.replace(/-/g, '');
-            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${cleanDate}T090000Z/${cleanDate}T100000Z&details=${encodeURIComponent(ev.description || 'Written Down app')}`;
-            window.open(url, '_blank');
+            const startTime = ev.time ? ev.time.replace(':', '') + '00' : '090000';
+            const startIso = `${cleanDate}T${startTime}`;
+
+            const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${startIso}/${startIso}&details=${encodeURIComponent(ev.description || 'Written Down PWA')}`;
+
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            if (isAndroid) {
+                window.location.href = `intent://calendar/event#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/event;title=${encodeURIComponent(ev.title)};description=${encodeURIComponent(ev.description || '')};end=${startIso};scheme=https;package=com.google.android.calendar;end`;
+                setTimeout(() => { window.open(gCalUrl, '_blank'); }, 500);
+            } else {
+                window.open(gCalUrl, '_blank');
+            }
+            showToast('Agenda app geopend!');
         }
 
-        function openICal(id) {
-            const ev = appState.events.find(e => e.id === id);
-            if (!ev) return;
-            const cleanDate = ev.date.replace(/-/g, '');
-            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Written Down PWA//NL\nBEGIN:VEVENT\nSUMMARY:${ev.title}\nDESCRIPTION:${ev.description || 'Written Down app'}\nDTSTART:${cleanDate}T090000Z\nDTEND:${cleanDate}T100000Z\nEND:VEVENT\nEND:VCALENDAR`;
-            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            showToast('Agenda iCal bestand geopend');
-        }
-
-        // --- TAKEN LOGIC ---
+        // --- 5. TAKEN LOGIC ---
         function renderTasks() {
             const container = document.getElementById('tasks-container');
             let filtered = appState.tasks;
@@ -519,27 +676,32 @@
             }
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm border border-slate-200">Geen taken in deze categorie.</div>`;
+                container.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-xs font-medium border border-slate-200">Geen taken in deze categorie.</div>`;
                 return;
             }
 
             container.innerHTML = filtered.map(task => `
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3 transition">
-                    <div class="flex items-center gap-3.5 flex-1">
-                        <button onclick="completeTask(${task.id})" class="w-6 h-6 rounded-lg border-2 ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-600'} flex items-center justify-center transition shrink-0">
-                            ${task.completed ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <button onclick="toggleTaskComplete(${task.id})" class="w-6 h-6 rounded-xl border-2 ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-600'} flex items-center justify-center transition shrink-0 active:scale-90">
+                            ${task.completed ? '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>' : ''}
                         </button>
-                        <div class="flex-1">
-                            <h4 class="font-bold text-slate-800 text-sm ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-100 text-slate-600 uppercase">${task.category}</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-indigo-50 text-indigo-700">Herhaling: ${task.recurrence}</span>
+                        <div class="flex-1 min-w-0" onclick="openTaskModal(${task.id})">
+                            <h4 class="font-bold text-slate-800 text-xs truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-600 uppercase">${task.category}</span>
+                                ${task.recurrence !== 'geen' ? `<span class="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-indigo-50 text-indigo-700">🔄 ${task.recurrence}</span>` : ''}
                             </div>
                         </div>
                     </div>
-                    <button onclick="deleteTask(${task.id})" class="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Verwijder">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="openTaskModal(${task.id})" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 transition" title="Bewerken">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteTask(${task.id})" class="p-1.5 rounded-xl hover:bg-red-50 text-red-600 transition" title="Verwijderen">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
             `).join('');
             lucide.createIcons();
@@ -548,50 +710,77 @@
 
         function filterTasks(cat) {
             appState.activeFilter = cat;
-            ['all', 'studie', 'financieen', 'persoonlijk'].forEach(c => {
+            ['all', 'studie', 'financieen', 'kot'].forEach(c => {
                 const btn = document.getElementById(`filter-${c}`);
-                if(c === cat) {
-                    btn.className = "px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shrink-0";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 shrink-0";
+                if (btn) {
+                    btn.className = c === cat 
+                        ? "px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shrink-0" 
+                        : "px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-600 shrink-0";
                 }
             });
             renderTasks();
         }
 
-        function handleCreateTask(e) {
+        function openTaskModal(id = null) {
+            if (id) {
+                const task = appState.tasks.find(t => t.id === id);
+                if (!task) return;
+                document.getElementById('taskId').value = task.id;
+                document.getElementById('taskTitle').value = task.title;
+                document.getElementById('taskCategory').value = task.category;
+                document.getElementById('taskRecurrence').value = task.recurrence;
+                document.getElementById('taskDate').value = task.dueDate || todayStr;
+                document.getElementById('taskModalTitle').innerText = 'Taak Bewerken';
+            } else {
+                document.getElementById('taskId').value = '';
+                document.getElementById('taskTitle').value = '';
+                document.getElementById('taskCategory').value = 'studie';
+                document.getElementById('taskRecurrence').value = 'geen';
+                document.getElementById('taskDate').value = todayStr;
+                document.getElementById('taskModalTitle').innerText = 'Nieuwe Taak';
+            }
+            openModal('taskModal');
+        }
+
+        function handleSaveTask(e) {
             e.preventDefault();
-            const newTask = {
-                id: Date.now(),
+            const id = document.getElementById('taskId').value;
+            const taskData = {
+                id: id ? parseInt(id) : Date.now(),
                 title: document.getElementById('taskTitle').value,
                 category: document.getElementById('taskCategory').value,
                 recurrence: document.getElementById('taskRecurrence').value,
                 dueDate: document.getElementById('taskDate').value,
                 completed: false
             };
-            appState.tasks.push(newTask);
+
+            if (id) {
+                const idx = appState.tasks.findIndex(t => t.id === parseInt(id));
+                if (idx !== -1) appState.tasks[idx] = { ...appState.tasks[idx], ...taskData };
+            } else {
+                appState.tasks.push(taskData);
+            }
+
             saveState();
             renderTasks();
             closeModal('taskModal');
-            e.target.reset();
-            showToast('Taak toegevoegd!');
+            showToast(id ? 'Taak bijgewerkt!' : 'Taak toegevoegd!');
         }
 
-        function completeTask(id) {
+        function toggleTaskComplete(id) {
             const task = appState.tasks.find(t => t.id === id);
             if (!task) return;
-            
-            task.completed = !task.completed;
-            showToast(`Taak voltooid!`);
 
-            // If recurring, automatically schedule next occurrence
+            task.completed = !task.completed;
+            
             if (task.completed && task.recurrence !== 'geen') {
+                showToast(`Taak afgevinkt! Volgende (${task.recurrence}) klaargezet.`);
                 setTimeout(() => {
                     let nextDate = new Date(task.dueDate || Date.now());
                     if (task.recurrence === 'dagelijks') nextDate.setDate(nextDate.getDate() + 1);
                     else if (task.recurrence === 'wekelijks') nextDate.setDate(nextDate.getDate() + 7);
                     else if (task.recurrence === 'maandelijks') nextDate.setMonth(nextDate.getMonth() + 1);
-                    
+
                     appState.tasks.push({
                         ...task,
                         id: Date.now(),
@@ -600,9 +789,11 @@
                     });
                     saveState();
                     renderTasks();
-                    showToast(`Volgende herhaling (${task.recurrence}) ingepland!`);
-                }, 500);
+                }, 400);
+            } else {
+                showToast(task.completed ? 'Taak voltooid' : 'Taak heropend');
             }
+
             saveState();
             renderTasks();
         }
@@ -615,105 +806,212 @@
         }
 
         function updateBadges() {
-            const incomplete = appState.tasks.filter(t => !t.completed).length;
-            document.getElementById('task-badge').innerText = incomplete;
+            const count = appState.tasks.filter(t => !t.completed).length;
+            document.getElementById('task-badge').innerText = count;
         }
 
-        // --- NOTITIES LOGIC ---
-        function renderNotesTabs() {
-            const container = document.getElementById('notes-tabs');
-            container.innerHTML = appState.notes.map(note => `
-                <button onclick="switchNote('${note.id}')" class="px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 transition flex items-center gap-1.5 ${note.id === appState.activeNoteId ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'}">
-                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                    ${note.title || 'Naamloze notitie'}
-                </button>
-            `).join('');
+        // --- 6. MAPPEN & CATEGORIEËN + NOTITIES LOGIC ---
+        function renderFolders() {
+            const chipsContainer = document.getElementById('folder-chips');
+            const editorSelect = document.getElementById('active-note-folder');
+
+            // Render Horizontal Folder Filter Chips
+            chipsContainer.innerHTML = appState.folders.map(folder => {
+                const count = folder === 'Alle' 
+                    ? appState.notes.length 
+                    : appState.notes.filter(n => n.folder === folder).length;
+                
+                const isSelected = appState.selectedFolder === folder;
+                const isTemp = folder === 'Korte notities';
+
+                return `
+                    <button onclick="selectFolder('${folder}')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                        isSelected 
+                            ? 'bg-indigo-600 text-white shadow-xs' 
+                            : (isTemp ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
+                    }">
+                        ${isTemp ? '⚡' : ''} ${folder}
+                        <span class="px-1.5 py-0.2 text-[10px] rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}">${count}</span>
+                    </button>
+                `;
+            }).join('');
+
+            // Populate Editor Dropdown Option List (excluding 'Alle')
+            const assignableFolders = appState.folders.filter(f => f !== 'Alle');
+            editorSelect.innerHTML = assignableFolders.map(f => `<option value="${f}">${f}</option>`).join('');
+        }
+
+        function selectFolder(folderName) {
+            appState.selectedFolder = folderName;
+            renderFolders();
+            renderNotesList();
+        }
+
+        function openFolderModal() {
+            document.getElementById('newFolderName').value = '';
+            openModal('folderModal');
+        }
+
+        function handleCreateFolder(e) {
+            e.preventDefault();
+            const name = document.getElementById('newFolderName').value.trim();
+            if (name && !appState.folders.includes(name)) {
+                appState.folders.push(name);
+                appState.selectedFolder = name;
+                saveState();
+                renderFolders();
+                renderNotesList();
+                closeModal('folderModal');
+                showToast(`Map "${name}" aangemaakt!`);
+            }
+        }
+
+        function cleanupTempNotes() {
+            const initialCount = appState.notes.length;
+            appState.notes = appState.notes.filter(n => n.folder !== 'Korte notities');
+            const removedCount = initialCount - appState.notes.length;
+            
+            saveState();
+            renderFolders();
+            renderNotesList();
+            showToast(removedCount > 0 ? `${removedCount} tijdelijke notities opgeruimd!` : 'Geen tijdelijke notities om op te ruimen');
+        }
+
+        function renderNotesList() {
+            renderFolders();
+            const grid = document.getElementById('notes-grid');
+            const search = document.getElementById('note-search').value.toLowerCase();
+            
+            let filtered = appState.notes;
+            if (appState.selectedFolder !== 'Alle') {
+                filtered = filtered.filter(n => n.folder === appState.selectedFolder);
+            }
+            if (search) {
+                filtered = filtered.filter(n => 
+                    n.title.toLowerCase().includes(search) || 
+                    n.body.toLowerCase().includes(search)
+                );
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-xs font-medium border border-slate-200">Geen notities in deze map.</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(n => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = n.body;
+                const snippet = tempDiv.innerText.slice(0, 75) || 'Leeg...';
+
+                const isTemp = n.folder === 'Korte notities';
+
+                return `
+                    <div onclick="openNoteEditor('${n.id}')" class="bg-white p-4 rounded-2xl border ${isTemp ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200/80'} shadow-xs hover:border-indigo-500 transition cursor-pointer space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-slate-900 text-sm truncate">${n.title || 'Naamloze notitie'}</h4>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${isTemp ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'}">${n.folder || 'Algemeen'}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">${snippet}</p>
+                        <div class="text-[10px] text-slate-400 font-medium pt-1 border-t border-slate-50 flex items-center justify-between">
+                            <span>Aangepast: ${n.updatedAt || 'Recent'}</span>
+                            <span class="text-indigo-600 font-bold flex items-center gap-1">Openen <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
             lucide.createIcons();
         }
 
-        function loadActiveNote() {
-            const note = appState.notes.find(n => n.id === appState.activeNoteId) || appState.notes[0];
+        function openNoteEditor(id) {
+            appState.activeNoteId = id;
+            const note = appState.notes.find(n => n.id === id);
             if (!note) return;
-            appState.activeNoteId = note.id;
+
             document.getElementById('active-note-title').value = note.title;
+            document.getElementById('active-note-folder').value = note.folder || 'Korte notities';
             document.getElementById('active-note-body').innerHTML = note.body;
-            renderNotesTabs();
+
+            document.getElementById('notes-list-view').classList.add('hidden');
+            document.getElementById('note-editor-view').classList.remove('hidden');
+            lucide.createIcons();
         }
 
-        function switchNote(id) {
-            appState.activeNoteId = id;
-            loadActiveNote();
+        function closeNoteEditor() {
+            document.getElementById('note-editor-view').classList.add('hidden');
+            document.getElementById('notes-list-view').classList.remove('hidden');
+            renderNotesList();
         }
 
         function createNewNote() {
+            const targetFolder = (appState.selectedFolder !== 'Alle') ? appState.selectedFolder : 'Korte notities';
             const newNote = {
-                id: Date.now().toString(),
+                id: 'n_' + Date.now(),
                 title: 'Nieuwe Notitie',
-                body: '<p>Begin hier met typen...</p>'
+                folder: targetFolder,
+                updatedAt: 'Zojuist',
+                body: '<p>Typ hier je tekst...</p>'
             };
-            appState.notes.push(newNote);
-            appState.activeNoteId = newNote.id;
+            appState.notes.unshift(newNote);
             saveState();
-            loadActiveNote();
-            showToast('Nieuwe notitie aangemaakt');
+            openNoteEditor(newNote.id);
+            showToast(`Nieuwe notitie in "${targetFolder}"`);
         }
 
         function saveCurrentNoteData() {
+            if (!appState.activeNoteId) return;
             const note = appState.notes.find(n => n.id === appState.activeNoteId);
             if (!note) return;
+
             note.title = document.getElementById('active-note-title').value;
+            note.folder = document.getElementById('active-note-folder').value;
             note.body = document.getElementById('active-note-body').innerHTML;
+            note.updatedAt = 'Zojuist';
+
             saveState();
-            renderNotesTabs();
-            
+
             const status = document.getElementById('save-status');
-            status.innerText = 'Opgeslagen...';
-            setTimeout(() => { status.innerText = 'Opgeslagen'; }, 800);
+            status.classList.remove('hidden');
+            status.innerText = 'Opslaan...';
+            setTimeout(() => { status.innerText = 'Opgeslagen'; }, 600);
         }
 
         function deleteCurrentNote() {
-            if (appState.notes.length <= 1) {
-                showToast('Je moet minimaal 1 notitie behouden.');
-                return;
-            }
+            if (!appState.activeNoteId) return;
             appState.notes = appState.notes.filter(n => n.id !== appState.activeNoteId);
-            appState.activeNoteId = appState.notes[0].id;
             saveState();
-            loadActiveNote();
+            closeNoteEditor();
             showToast('Notitie verwijderd');
         }
 
-        function formatDoc(cmd, value = null) {
-            document.execCommand(cmd, false, value);
+        function formatDoc(cmd, val = null) {
+            document.execCommand(cmd, false, val);
             document.getElementById('active-note-body').focus();
             saveCurrentNoteData();
         }
 
-        // --- NOTIFICATIONS & UTILS ---
+        // --- 7. UTILS & SYSTEM CONTROLS ---
         function requestNotificationPermission() {
             if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        showToast('Meldingen ingeschakeld!');
+                Notification.requestPermission().then(p => {
+                    if (p === 'granted') {
                         document.getElementById('notif-dot').classList.remove('hidden');
-                        new Notification('Written Down', { body: 'Meldingen zijn succesvol ingeschakeld voor al je taken en herinneringen!' });
+                        showToast('Meldingen geactiveerd!');
+                        new Notification('Written Down', { body: 'Meldingen ingesteld voor je afspraken en taken!' });
                     } else {
-                        showToast('Meldingen geweigerd in browserinstellingen.');
+                        showToast('Notificaties niet toegestaan');
                     }
                 });
             } else {
-                showToast('Browser ondersteunt geen notificaties.');
+                showToast('Geen ondersteuning voor notificaties');
             }
         }
 
         function exportData() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `written_down_backup_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `written_down_backup_${todayStr}.json`;
+            a.click();
             showToast('Back-up geëxporteerd!');
         }
 
@@ -722,12 +1020,13 @@
             location.reload();
         }
 
-        // --- INIT ---
+        // Initialize App
         window.onload = function() {
             renderEvents();
             renderTasks();
-            renderNotesTabs();
-            loadActiveNote();
+            renderFolders();
+            renderNotesList();
+            checkInstallability();
             lucide.createIcons();
         };
     </script>
