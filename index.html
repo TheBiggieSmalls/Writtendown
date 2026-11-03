@@ -140,7 +140,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--p)}
   </section>
 </main>
 
-<button class="fab" id="fab" onclick="fabGo()"><svg class="ic"><use href="#i-plus"/></svg><span id="fabl">Afspraak</span></button>
+<button class="fab" id="fab" onclick="fabGo()"><svg class="ic"><use href="#i-plus"/></svg><span id="fabl">Item</span></button>
 
 <nav class="bar">
   <button id="n-kalender" onclick="go('kalender')"><span class="pill"><svg class="ic"><use href="#i-event"/></svg></span>Agenda</button>
@@ -161,7 +161,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--p)}
     <button class="ib" onclick="fmt('italic')"><svg class="ic"><use href="#i-i"/></svg></button>
     <button class="ib" onclick="fmt('formatBlock','<h2>')" style="font-weight:700">H</button>
     <button class="ib" onclick="fmt('insertUnorderedList')"><svg class="ic"><use href="#i-ul"/></svg></button>
-    <button class="ib" onclick="fmt('insertOrderedList')"><svg class="ic"><use href="#i-ol"/></svg></button>
+    <button class="ib" onclick="fmt('insertOrderedList')"><svg class="ic"><use href="#i-ol"/></svg></button><select id="nfo" onchange="setFont()" style="width:auto;padding:10px 12px;font-size:15px;margin:0 6px"><option value="sans">Standaard</option><option value="serif">Serif</option><option value="book">Boek</option><option value="mono">Schrijfmachine</option><option value="hand">Handschrift</option></select><button class="btn t" style="height:40px;padding:0 14px;margin-right:4px" onclick="expNote('txt')">TXT</button><button class="btn t" style="height:40px;padding:0 14px" onclick="expNote('doc')">Word</button>
   </div>
   <input id="nt" class="big" oninput="saveNote()" placeholder="Titel">
   <div id="nb" contenteditable="true" oninput="saveNote()" placeholder="Begin met typen…"></div>
@@ -190,7 +190,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--p)}
 
 <!-- Event sheet -->
 <div class="scrim" id="m-ev" onclick="if(event.target===this)closeM('m-ev')"><form class="sheet" onsubmit="saveEv(event)">
-  <h3 id="evt">Nieuwe afspraak</h3><input type="hidden" id="eid">
+  <h3 id="evt">Nieuw item</h3><input type="hidden" id="eid">
   <label class="f"><span>Titel</span><input id="et" required placeholder="Bijv. Hoorcollege"></label>
   <label class="f"><span>Extra info</span><textarea id="ed2" rows="2" placeholder="Locatie, details…"></textarea></label>
   <div style="display:grid;grid-template-columns:3fr 2fr;gap:10px">
@@ -243,7 +243,7 @@ const openM=id=>$(id).classList.add('o'),closeM=id=>$(id).classList.remove('o');
 function go(t){
   S.tab=t;
   ['kalender','taken','notities'].forEach(x=>{$('p-'+x).hidden=x!==t;$('n-'+x).classList.toggle('act',x===t);$('d-'+x).classList.toggle('act',x===t)});
-  $('fab').hidden=t==='notities';$('fabl').textContent=t==='taken'?'Taak':'Afspraak';
+  $('fab').hidden=t==='notities';$('fabl').textContent=t==='taken'?'Taak':'Item';
   $('ed').hidden=true;
   if(t==='kalender')renderCal();if(t==='taken')renderTasks();if(t==='notities')renderNotes();
 }
@@ -260,7 +260,7 @@ function occurs(e,ds){
   if(r==='jaarlijks')return a.getDate()===b.getDate()&&a.getMonth()===b.getMonth();
   return false;
 }
-const dayEvs=ds=>S.events.filter(e=>occurs(e,ds)).sort((a,b)=>a.time.localeCompare(b.time));
+const dayEvs=ds=>[...S.events,...S.tasks.map(t=>({id:t.id,task:1,title:t.title,date:t.dueDate,repeat:t.recurrence,time:'',completed:t.completed}))].filter(e=>e.date&&occurs(e,ds)).sort((a,b)=>a.time.localeCompare(b.time));
 function renderCal(){
   const{y,m}=cur,first=new Date(y,m,1),off=(first.getDay()+6)%7,n=new Date(y,m+1,0).getDate();
   let h=['ma','di','wo','do','vr','za','zo'].map(w=>`<div class="wd">${w}</div>`).join('')+'<div></div>'.repeat(off);
@@ -270,7 +270,7 @@ function renderCal(){
   $('mt').textContent=cap(first.toLocaleDateString('nl-BE',{month:'long',year:'numeric'}));
   $('dt').textContent=cap(pd(sel).toLocaleDateString('nl-BE',{weekday:'long',day:'numeric',month:'long'}));
   const l=dayEvs(sel);
-  $('evs').innerHTML=l.length?l.map(e=>`<div class="ev"><div class="grow" onclick="openEv(${e.id})"><span class="tm">${e.time}</span><b>${esc(e.title)}</b>${e.description?`<p>${esc(e.description)}</p>`:''}${REP[e.repeat]?`<span class="tag">${REP[e.repeat]}</span>`:''}</div><button class="ib" onclick="addCal(${e.id})" style="color:var(--p)">${ic('event')}</button><button class="ib" onclick="delEv(${e.id})" style="color:var(--er)">${ic('del')}</button></div>`).join(''):'<p class="empty">Niets gepland op deze dag.</p>';
+  $('evs').innerHTML=l.length?l.map(e=>e.task?`<div class="tk"><button class="ck${e.completed&&e.repeat==='geen'?' on':''}" onclick="toggleTk(${e.id})">${e.completed&&e.repeat==='geen'?ic('ck'):''}</button><div class="grow" onclick="openTk(${e.id})"><span class="tm">Taak</span><b class="${e.completed&&e.repeat==='geen'?'done':''}">${esc(e.title)}</b>${REP[e.repeat]?`<span class="tag">${REP[e.repeat]}</span>`:''}</div></div>`:`<div class="ev"><div class="grow" onclick="openEv(${e.id})"><span class="tm">${e.time}</span><b>${esc(e.title)}</b>${e.description?`<p>${esc(e.description)}</p>`:''}${REP[e.repeat]?`<span class="tag">${REP[e.repeat]}</span>`:''}</div><button class="ib" onclick="addCal(${e.id})" style="color:var(--p)">${ic('event')}</button><button class="ib" onclick="delEv(${e.id})" style="color:var(--er)">${ic('del')}</button></div>`).join(''):'<p class="empty">Niets gepland op deze dag.</p>';
 }
 const pick=ds=>{sel=ds;renderCal()};
 function mv(d){cur.m+=d;if(cur.m<0){cur.m=11;cur.y--}if(cur.m>11){cur.m=0;cur.y++}renderCal()}
@@ -279,15 +279,15 @@ function openEv(id){
   const e=id&&S.events.find(x=>x.id===id);
   $('eid').value=e?e.id:'';$('et').value=e?e.title:'';$('ed2').value=e?e.description||'':'';
   $('edt').value=e?e.date:sel;$('etm').value=e?e.time:'10:00';$('er').value=e?e.repeat||'geen':'geen';
-  $('evt').textContent=e?'Afspraak bewerken':'Nieuwe afspraak';$('eics').hidden=!e;openM('m-ev');
+  $('evt').textContent=e?'Item bewerken':'Nieuw item';$('eics').hidden=!e;openM('m-ev');
 }
 function saveEv(ev){
   ev.preventDefault();const id=+$('eid').value;
   const d={id:id||Date.now(),title:$('et').value.trim(),description:$('ed2').value.trim(),date:$('edt').value,time:$('etm').value,repeat:$('er').value};
   const i=S.events.findIndex(x=>x.id===id);i>-1?S.events[i]=d:S.events.push(d);
-  save();sel=d.date;const p=pd(d.date);cur={y:p.getFullYear(),m:p.getMonth()};renderCal();closeM('m-ev');toast('Afspraak opgeslagen');
+  save();sel=d.date;const p=pd(d.date);cur={y:p.getFullYear(),m:p.getMonth()};renderCal();closeM('m-ev');toast('Item opgeslagen');
 }
-function delEv(id){const e=S.events.find(x=>x.id===id);if(e&&e.repeat!=='geen'&&!confirm('Alle herhalingen verwijderen?'))return;S.events=S.events.filter(x=>x.id!==id);save();renderCal();toast('Afspraak verwijderd')}
+function delEv(id){const e=S.events.find(x=>x.id===id);if(e&&e.repeat!=='geen'&&!confirm('Alle herhalingen verwijderen?'))return;S.events=S.events.filter(x=>x.id!==id);save();renderCal();toast('Item verwijderd')}
 
 // ---- ics / telefoonagenda
 const st=e=>e.date.replace(/-/g,'')+'T'+e.time.replace(':','')+'00';
@@ -298,7 +298,7 @@ function icsText(list){
   return['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Written Down//NL','CALSCALE:GREGORIAN',...list.flatMap(e=>['BEGIN:VEVENT','UID:'+e.id+'@writtendown','DTSTAMP:'+stamp,'DTSTART:'+st(e),'DTEND:'+en(e),'SUMMARY:'+z(e.title),'DESCRIPTION:'+z(e.description),...(RR[e.repeat]?['RRULE:'+RR[e.repeat]]:[]),'END:VEVENT']),'END:VCALENDAR'].join('\r\n');
 }
 function dlFile(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
-function dlIcs(id){const e=S.events.find(x=>x.id===id);if(!e)return;dlFile((e.title.replace(/[^\w-]+/g,'_')||'afspraak')+'.ics',icsText([e]),'text/calendar');toast('.ics-bestand gedownload: open het om toe te voegen')}
+function dlIcs(id){const e=S.events.find(x=>x.id===id);if(!e)return;dlFile((e.title.replace(/[^\w-]+/g,'_')||'item')+'.ics',icsText([e]),'text/calendar');toast('.ics-bestand gedownload: open het om toe te voegen')}
 const exportIcs=()=>{dlFile('written_down_agenda.ics',icsText(S.events),'text/calendar');toast('Agenda geëxporteerd')};
 async function online(){
   if(!navigator.onLine)return false;
@@ -317,10 +317,10 @@ async function addCal(id){
 }
 
 // ---- taken
-function renderTasks(){
+function renderTasks(){wake();
   $('tf').innerHTML=[['all','Alles'],...Object.entries(CAT)].map(([k,v])=>`<button class="chip${S.filter===k?' on':''}" onclick="S.filter='${k}';renderTasks()">${S.filter===k?ic('ck'):''}${v}</button>`).join('');
   const l=S.tasks.filter(t=>S.filter==='all'||t.category===S.filter).sort((a,b)=>a.completed-b.completed||(a.dueDate||'').localeCompare(b.dueDate||''));
-  $('tl').innerHTML=l.length?l.map(t=>`<div class="tk"><button class="ck${t.completed?' on':''}" onclick="toggleTk(${t.id})">${t.completed?ic('ck'):''}</button><div class="grow" onclick="openTk(${t.id})"><b class="${t.completed?'done':''}">${esc(t.title)}</b><span class="tag">${CAT[t.category]||''}</span> ${t.recurrence!=='geen'?`<span class="tag">${t.recurrence}</span>`:''}</div><button class="ib" onclick="delTk(${t.id})" style="color:var(--er)">${ic('del')}</button></div>`).join(''):'<p class="empty">Geen taken in deze categorie.</p>';
+  $('tl').innerHTML=l.length?l.map(t=>`<div class="tk"><button class="ck${t.completed?' on':''}" onclick="toggleTk(${t.id})">${t.completed?ic('ck'):''}</button><div class="grow" onclick="openTk(${t.id})"><b class="${t.completed?'done':''}">${esc(t.title)}</b><span class="tag">${CAT[t.category]||''}</span> ${t.recurrence!=='geen'?`<span class="tag">${t.recurrence}</span>`:''} ${t.completed&&t.back?`<span class="tag">Terug op ${nice(t.back)}</span>`:`<span class="tag" style="background:none;color:var(--onv);padding-left:4px">${t.dueDate?nice(t.dueDate):''}</span>`}</div><button class="ib" onclick="delTk(${t.id})" style="color:var(--er)">${ic('del')}</button></div>`).join(''):'<p class="empty">Geen taken in deze categorie.</p>';
   badge();
 }
 const badge=()=>{$('bd').textContent=S.tasks.filter(t=>!t.completed).length};
@@ -332,23 +332,27 @@ function openTk(id){
 function saveTk(ev){
   ev.preventDefault();const id=+$('tid').value,i=S.tasks.findIndex(x=>x.id===id);
   const d={id:id||Date.now(),title:$('tt').value.trim(),category:$('tc').value,recurrence:$('tr').value,dueDate:$('td').value,completed:i>-1?S.tasks[i].completed:false};
-  i>-1?S.tasks[i]=d:S.tasks.push(d);save();renderTasks();closeM('m-tk');toast('Taak opgeslagen');
+  i>-1?S.tasks[i]=d:S.tasks.push(d);save();rall();closeM('m-tk');toast('Taak opgeslagen');
 }
+const nice=d=>pd(d).toLocaleDateString('nl-BE',{weekday:'short',day:'numeric',month:'short'});
+function wake(){let c=0;S.tasks.forEach(t=>{if(t.completed&&t.back&&t.back<=TODAY){t.completed=false;delete t.back;delete t.prev;c=1}});if(c)save()}
+const rall=()=>{renderTasks();renderCal()};
 function toggleTk(id){
   const t=S.tasks.find(x=>x.id===id);if(!t)return;t.completed=!t.completed;
   if(t.completed&&t.recurrence!=='geen'){
-    const n=pd(t.dueDate||TODAY);
-    if(t.recurrence==='dagelijks')n.setDate(n.getDate()+1);else if(t.recurrence==='wekelijks')n.setDate(n.getDate()+7);else n.setMonth(n.getMonth()+1);
-    S.tasks.push({...t,id:Date.now(),dueDate:ymd(n),completed:false});toast('Afgevinkt — volgende ('+t.recurrence+') klaargezet');
-  }else toast(t.completed?'Taak voltooid':'Taak heropend');
-  save();renderTasks();
+    t.prev=t.dueDate;const n=pd(t.dueDate||TODAY);
+    do{t.recurrence==='dagelijks'?n.setDate(n.getDate()+1):t.recurrence==='wekelijks'?n.setDate(n.getDate()+7):n.setMonth(n.getMonth()+1)}while(ymd(n)<=TODAY);
+    t.dueDate=ymd(n);const r=new Date(n);r.setDate(r.getDate()-({dagelijks:0,wekelijks:2,maandelijks:5}[t.recurrence]));t.back=ymd(r);
+    toast('Klaar! Volgende keer: '+nice(t.dueDate));
+  }else{if(t.prev){t.dueDate=t.prev}delete t.prev;delete t.back;toast(t.completed?'Taak voltooid':'Taak heropend')}
+  save();rall();
 }
-function delTk(id){S.tasks=S.tasks.filter(x=>x.id!==id);save();renderTasks();toast('Taak verwijderd')}
+function delTk(id){S.tasks=S.tasks.filter(x=>x.id!==id);save();rall();toast('Taak verwijderd')}
 
 // ---- notities
 function renderNotes(){
   $('fc').innerHTML=S.folders.map((f,i)=>{const c=f==='Alle'?S.notes.length:S.notes.filter(n=>n.folder===f).length;
-    return`<button class="chip${S.folder===f?' on':''}" onclick="selFolder(${i})">${f==='Korte notities'?ic('bolt'):''}${esc(f)} · ${c}</button>`}).join('')+`<button class="chip" onclick="cleanTemp()">${ic('del')}Tijdelijke opruimen</button>`;
+    return`<button class="chip${S.folder===f?' on':''}" onclick="selFolder(${i})">${f==='Korte notities'?ic('bolt'):''}${esc(f)} · ${c}</button>`}).join('')+`<button class="chip" onclick="expFolder('doc')">${ic('dl')}Map → Word</button><button class="chip" onclick="expFolder('txt')">${ic('dl')}Map → TXT</button><button class="chip" onclick="cleanTemp()">${ic('del')}Tijdelijke opruimen</button>`;
   const q=$('q').value.toLowerCase();
   const l=S.notes.filter(n=>(S.folder==='Alle'||n.folder===S.folder)&&(!q||(n.title+' '+n.body).toLowerCase().includes(q)));
   $('ng').innerHTML=l.length?l.map(n=>{const d=document.createElement('div');d.innerHTML=n.body;
@@ -362,14 +366,27 @@ function newNote(){const n={id:'n_'+Date.now(),title:'',folder:S.folder!=='Alle'
 function openEd(id){
   const n=S.notes.find(x=>x.id===id);if(!n)return;S.noteId=id;
   $('nf').innerHTML=S.folders.filter(f=>f!=='Alle').map(f=>`<option>${esc(f)}</option>`).join('');
-  $('nf').value=n.folder;$('nt').value=n.title;$('nb').innerHTML=n.body;$('ss').textContent='';$('ed').hidden=false;
+  $('nf').value=n.folder;$('nfo').value=n.font||'sans';applyFont();$('nt').value=n.title;$('nb').innerHTML=n.body;$('ss').textContent='';$('ed').hidden=false;
 }
 function closeEd(){$('ed').hidden=true;S.noteId=null;renderNotes()}
 function saveNote(){
   const n=S.notes.find(x=>x.id===S.noteId);if(!n)return;
-  n.title=$('nt').value;n.folder=$('nf').value;n.body=$('nb').innerHTML;n.updatedAt='Zojuist';save();$('ss').textContent='Opgeslagen';
+  n.title=$('nt').value;n.folder=$('nf').value;n.font=$('nfo').value;n.body=$('nb').innerHTML;n.updatedAt='Zojuist';save();$('ss').textContent='Opgeslagen';
 }
 function delNote(){if(!confirm('Notitie verwijderen?'))return;S.notes=S.notes.filter(x=>x.id!==S.noteId);save();closeEd();toast('Notitie verwijderd')}
+const FONTS={sans:"Roboto,system-ui,sans-serif",serif:"Georgia,'Times New Roman',serif",book:"'Palatino Linotype',Palatino,'Iowan Old Style',Georgia,serif",mono:"'Courier New',Courier,monospace",hand:"'Segoe Print','Bradley Hand','Comic Sans MS',cursive"};
+function applyFont(){const f=FONTS[$('nfo').value];$('nb').style.fontFamily=f;$('nt').style.fontFamily=f}
+function setFont(){applyFont();saveNote()}
+const fnm=s=>(s||'notitie').replace(/[^\w-]+/g,'_');
+function toText(h){const d=document.createElement('div');d.innerHTML=h;d.querySelectorAll('li').forEach(l=>l.prepend('• '));d.querySelectorAll('p,div,h1,h2,h3,li,br').forEach(e=>e.after('\n'));return d.textContent.replace(/\n{3,}/g,'\n\n').trim()}
+function exportNotes(l,fmt,name){
+  if(!l.length)return toast('Niets om te exporteren');
+  if(fmt==='txt')dlFile(fnm(name)+'.txt',l.map(n=>{const t=n.title||'Naamloos';return t+'\n'+'='.repeat(t.length)+'\n\n'+toText(n.body)}).join('\n\n\n'),'text/plain');
+  else dlFile(fnm(name)+'.doc','<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>'+esc(name)+'</title></head><body>'+l.map(n=>`<div style="font-family:${FONTS[n.font||'sans']}"><h1>${esc(n.title||'Naamloos')}</h1>${n.body}</div>`).join('<br clear="all" style="page-break-before:always">')+'</body></html>','application/msword');
+  toast('Geëxporteerd');
+}
+const expNote=f=>{const n=S.notes.find(x=>x.id===S.noteId);if(n)exportNotes([n],f,n.title)};
+const expFolder=f=>exportNotes(S.notes.filter(n=>S.folder==='Alle'||n.folder===S.folder).reverse(),f,S.folder==='Alle'?'Alle_notities':S.folder);
 function fmt(c,v){document.execCommand(c,false,v||null);$('nb').focus();saveNote()}
 
 // ---- systeem
