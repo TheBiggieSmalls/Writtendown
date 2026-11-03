@@ -73,6 +73,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--p)}
 .big{background:none!important;border:0!important;font-size:28px;font-weight:500;padding:8px 20px!important;border-radius:0!important}
 #nb{flex:1;overflow-y:auto;padding:8px 20px 40px;font-size:18px;line-height:1.6;outline:0}
 #nb:empty:before{content:attr(placeholder);color:var(--onv)}
+.menu{position:absolute;right:12px;top:calc(60px + env(safe-area-inset-top));background:var(--sh);border-radius:16px;padding:8px;box-shadow:0 4px 16px rgba(0,0,0,.3);min-width:230px}.menu button{height:52px;width:100%;padding:0 16px;border-radius:12px;display:flex;gap:14px;align-items:center;font-size:17px}.menu button:active{background:var(--sl)}
+.fo{display:flex;justify-content:space-between;align-items:center;width:100%;height:60px;padding:0 20px;border-radius:16px;font-size:22px}.fo.on{background:var(--pc);color:var(--opc)}
 .toast{position:absolute;left:16px;right:16px;bottom:120px;background:var(--inv);color:var(--oninv);padding:14px 20px;border-radius:12px;z-index:80;opacity:0;pointer-events:none;transition:.25s;font-size:15px}.toast.o{opacity:1}
 </style>
 </head>
@@ -152,20 +154,29 @@ input:focus,textarea:focus,select:focus{border-color:var(--p)}
 <div class="edv" id="ed" hidden>
   <div class="tb">
     <button class="ib" onclick="closeEd()"><svg class="ic"><use href="#i-back"/></svg></button>
-    <select id="nf" onchange="saveNote()" style="width:auto;flex:1;padding:10px 14px;font-size:15px"></select>
-    <span id="ss" style="font-size:12px;color:var(--onv)"></span>
+    <span class="grow" id="ss" style="font-size:13px;color:var(--onv);padding-left:4px"></span>
+    <button class="ib" onclick="$('xm').hidden=false"><svg class="ic"><use href="#i-dl"/></svg></button>
     <button class="ib" onclick="delNote()" style="color:var(--er)"><svg class="ic"><use href="#i-del"/></svg></button>
   </div>
-  <div class="tb" style="overflow-x:auto">
+  <div style="display:flex;gap:10px;padding:4px 16px 0">
+    <label class="f grow" style="margin:0"><span>Titel</span><input id="nt" oninput="saveNote()" placeholder="Titel van je notitie" style="font-weight:500"></label>
+    <label class="f" style="margin:0;width:38%"><span>Map</span><select id="nf" onchange="saveNote()"></select></label>
+  </div>
+  <div class="tb" style="padding:10px 12px 0">
     <button class="ib" onclick="fmt('bold')"><svg class="ic"><use href="#i-b"/></svg></button>
     <button class="ib" onclick="fmt('italic')"><svg class="ic"><use href="#i-i"/></svg></button>
-    <button class="ib" onclick="fmt('formatBlock','<h2>')" style="font-weight:700">H</button>
+    <button class="ib" onclick="fmt('formatBlock','<h2>')" style="font-weight:700;font-size:18px">H</button>
     <button class="ib" onclick="fmt('insertUnorderedList')"><svg class="ic"><use href="#i-ul"/></svg></button>
-    <button class="ib" onclick="fmt('insertOrderedList')"><svg class="ic"><use href="#i-ol"/></svg></button><select id="nfo" onchange="setFont()" style="width:auto;padding:10px 12px;font-size:15px;margin:0 6px"><option value="sans">Standaard</option><option value="serif">Serif</option><option value="book">Boek</option><option value="mono">Schrijfmachine</option><option value="hand">Handschrift</option></select><button class="btn t" style="height:40px;padding:0 14px;margin-right:4px" onclick="expNote('txt')">TXT</button><button class="btn t" style="height:40px;padding:0 14px" onclick="expNote('doc')">Word</button>
+    <button class="ib" onclick="fmt('insertOrderedList')"><svg class="ic"><use href="#i-ol"/></svg></button>
+    <button class="ib" onclick="openFonts()" style="font-weight:700;font-size:19px">Aa</button>
   </div>
-  <input id="nt" class="big" oninput="saveNote()" placeholder="Titel">
-  <div id="nb" contenteditable="true" oninput="saveNote()" placeholder="Begin met typen…"></div>
+  <div id="nb" contenteditable="true" oninput="saveNote()" placeholder="Begin met typen…" style="margin-top:6px"></div>
+  <div id="xm" hidden style="position:absolute;inset:0;z-index:5" onclick="this.hidden=true"><div class="menu">
+    <button onclick="expNote('txt')"><svg class="ic"><use href="#i-note"/></svg>Exporteer als TXT</button>
+    <button onclick="expNote('doc')"><svg class="ic"><use href="#i-note"/></svg>Exporteer als Word</button>
+  </div></div>
 </div>
+<div class="scrim" id="m-font" onclick="if(event.target===this)closeM('m-font')"><div class="sheet"><h3 style="margin-bottom:8px">Lettertype</h3><div id="fl"></div></div></div>
 
 <!-- Drawer -->
 <div class="scrim" id="dsc" style="z-index:50" onclick="drawer(0)"></div>
@@ -352,31 +363,33 @@ function delTk(id){S.tasks=S.tasks.filter(x=>x.id!==id);save();rall();toast('Taa
 // ---- notities
 function renderNotes(){
   $('fc').innerHTML=S.folders.map((f,i)=>{const c=f==='Alle'?S.notes.length:S.notes.filter(n=>n.folder===f).length;
-    return`<button class="chip${S.folder===f?' on':''}" onclick="selFolder(${i})">${f==='Korte notities'?ic('bolt'):''}${esc(f)} · ${c}</button>`}).join('')+`<button class="chip" onclick="expFolder('doc')">${ic('dl')}Map → Word</button><button class="chip" onclick="expFolder('txt')">${ic('dl')}Map → TXT</button><button class="chip" onclick="cleanTemp()">${ic('del')}Tijdelijke opruimen</button>`;
+    return`<button class="chip${S.folder===f?' on':''}" onclick="selFolder(${i})">${f==='Korte notities'?ic('bolt'):''}${esc(f)} · ${c}</button>`}).join('')+`<button class="chip" onclick="cleanTemp()">${ic('del')}Tijdelijke opruimen</button>`;
   const q=$('q').value.toLowerCase();
   const l=S.notes.filter(n=>(S.folder==='Alle'||n.folder===S.folder)&&(!q||(n.title+' '+n.body).toLowerCase().includes(q)));
   $('ng').innerHTML=l.length?l.map(n=>{const d=document.createElement('div');d.innerHTML=n.body;
-    return`<button class="nc" onclick="openEd('${n.id}')"><h3>${esc(n.title)||'Naamloze notitie'}</h3><p>${esc((d.textContent||'').slice(0,160))||'Leeg…'}</p><span class="tag" style="margin:0">${n.folder==='Korte notities'?'⚡ ':''}${esc(n.folder||'Algemeen')}</span><small>${esc(n.updatedAt||'')}</small></button>`}).join(''):'<p class="empty">Geen notities gevonden.</p>';
+    return`<button class="nc" onclick="openEd('${n.id}')"><h3>${esc(n.title)||'Naamloze notitie'}</h3><p>${esc((d.textContent||'').slice(0,160))||'Leeg…'}</p><span class="tag" style="margin:0">${n.folder==='Korte notities'?'⚡ ':''}${esc(n.folder||'Geen map')}</span><small>${esc(n.updatedAt||'')}</small></button>`}).join(''):'<p class="empty">Geen notities gevonden.</p>';
 }
 function selFolder(i){S.folder=S.folders[i];renderNotes()}
 function openFolder(){$('fn').value='';openM('m-folder');setTimeout(()=>$('fn').focus(),50)}
 function saveFolder(e){e.preventDefault();const n=$('fn').value.trim();if(n&&!S.folders.includes(n)){S.folders.push(n);S.folder=n;save();renderNotes();toast('Map "'+n+'" gemaakt')}closeM('m-folder')}
 function cleanTemp(){const c=S.notes.length;S.notes=S.notes.filter(n=>n.folder!=='Korte notities');save();renderNotes();toast(c-S.notes.length?(c-S.notes.length)+' tijdelijke notities opgeruimd':'Niets op te ruimen')}
-function newNote(){const n={id:'n_'+Date.now(),title:'',folder:S.folder!=='Alle'?S.folder:'Korte notities',updatedAt:'Zojuist',body:''};S.notes.unshift(n);save();openEd(n.id);$('nt').focus()}
+function newNote(){const n={id:'n_'+Date.now(),title:'',folder:S.folder!=='Alle'?S.folder:'',updatedAt:'Zojuist',body:''};S.notes.unshift(n);save();openEd(n.id);$('nt').focus()}
 function openEd(id){
   const n=S.notes.find(x=>x.id===id);if(!n)return;S.noteId=id;
-  $('nf').innerHTML=S.folders.filter(f=>f!=='Alle').map(f=>`<option>${esc(f)}</option>`).join('');
-  $('nf').value=n.folder;$('nfo').value=n.font||'sans';applyFont();$('nt').value=n.title;$('nb').innerHTML=n.body;$('ss').textContent='';$('ed').hidden=false;
+  $('nf').innerHTML='<option value="">Geen map</option>'+S.folders.filter(f=>f!=='Alle').map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  $('nf').value=n.folder||'';curFont=n.font||'sans';applyFont();$('nt').value=n.title;$('nb').innerHTML=n.body;$('ss').textContent='';$('ed').hidden=false;
 }
 function closeEd(){$('ed').hidden=true;S.noteId=null;renderNotes()}
 function saveNote(){
   const n=S.notes.find(x=>x.id===S.noteId);if(!n)return;
-  n.title=$('nt').value;n.folder=$('nf').value;n.font=$('nfo').value;n.body=$('nb').innerHTML;n.updatedAt='Zojuist';save();$('ss').textContent='Opgeslagen';
+  n.title=$('nt').value;n.folder=$('nf').value;n.font=curFont;n.body=$('nb').innerHTML;n.updatedAt='Zojuist';save();$('ss').textContent='Opgeslagen';
 }
 function delNote(){if(!confirm('Notitie verwijderen?'))return;S.notes=S.notes.filter(x=>x.id!==S.noteId);save();closeEd();toast('Notitie verwijderd')}
-const FONTS={sans:"Roboto,system-ui,sans-serif",serif:"Georgia,'Times New Roman',serif",book:"'Palatino Linotype',Palatino,'Iowan Old Style',Georgia,serif",mono:"'Courier New',Courier,monospace",hand:"'Segoe Print','Bradley Hand','Comic Sans MS',cursive"};
-function applyFont(){const f=FONTS[$('nfo').value];$('nb').style.fontFamily=f;$('nt').style.fontFamily=f}
-function setFont(){applyFont();saveNote()}
+const FL=[['sans','Standaard',"Roboto,system-ui,sans-serif"],['light','Licht',"'sans-serif-light','Helvetica Neue',Roboto,sans-serif"],['narrow','Smal',"'sans-serif-condensed','Arial Narrow',sans-serif"],['modern','Modern',"'Trebuchet MS','Gill Sans',sans-serif"],['verdana','Verdana',"Verdana,Geneva,sans-serif"],['serif','Serif',"Georgia,'Noto Serif',serif"],['book','Boek',"'Palatino Linotype',Palatino,'Iowan Old Style',Georgia,serif"],['news','Krant',"'Times New Roman',Times,serif"],['mono','Schrijfmachine',"'Courier New',Courier,monospace"],['code','Code',"ui-monospace,'Cascadia Mono',Menlo,'Droid Sans Mono',monospace"],['hand','Handschrift',"'Segoe Print','Bradley Hand','Comic Sans MS',cursive"],['fancy','Sierlijk',"'Snell Roundhand','Brush Script MT','Dancing Script',cursive"],['fun','Speels',"'Chalkboard SE','Comic Sans MS',casual,cursive"]];
+const FONTS=Object.fromEntries(FL.map(f=>[f[0],f[2]]));let curFont='sans';
+function applyFont(){const f=FONTS[curFont]||FONTS.sans;$('nb').style.fontFamily=f;$('nt').style.fontFamily=f}
+function openFonts(){$('fl').innerHTML=FL.map(f=>`<button class="fo${f[0]===curFont?' on':''}" style="font-family:${f[2].replace(/"/g,"'")}" onclick="setFont('${f[0]}')">${f[1]}${f[0]===curFont?ic('ck'):''}</button>`).join('');openM('m-font')}
+function setFont(k){curFont=k;applyFont();closeM('m-font');saveNote()}
 const fnm=s=>(s||'notitie').replace(/[^\w-]+/g,'_');
 function toText(h){const d=document.createElement('div');d.innerHTML=h;d.querySelectorAll('li').forEach(l=>l.prepend('• '));d.querySelectorAll('p,div,h1,h2,h3,li,br').forEach(e=>e.after('\n'));return d.textContent.replace(/\n{3,}/g,'\n\n').trim()}
 function exportNotes(l,fmt,name){
@@ -386,7 +399,6 @@ function exportNotes(l,fmt,name){
   toast('Geëxporteerd');
 }
 const expNote=f=>{const n=S.notes.find(x=>x.id===S.noteId);if(n)exportNotes([n],f,n.title)};
-const expFolder=f=>exportNotes(S.notes.filter(n=>S.folder==='Alle'||n.folder===S.folder).reverse(),f,S.folder==='Alle'?'Alle_notities':S.folder);
 function fmt(c,v){document.execCommand(c,false,v||null);$('nb').focus();saveNote()}
 
 // ---- systeem
